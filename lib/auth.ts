@@ -1,7 +1,8 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { SignJWT, jwtVerify } from 'jose'
+import { SignJWT } from 'jose/jwt/sign'
+import { jwtVerify } from 'jose/jwt/verify'
 
 const IS_DEV = process.env.NODE_ENV === 'development'
 const DEV_EMAIL = 'dev@local.test'

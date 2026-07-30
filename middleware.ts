@@ -1,5 +1,6 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextRequest } from 'next/server'
+import { authOptions } from '@/lib/auth'
 
 export const middleware =
   process.env.NODE_ENV === 'development'
@@ -14,6 +15,12 @@ export const middleware =
           },
           pages: {
             signIn: '/login',
+          },
+          // withAuth's own getToken() call otherwise falls back to NextAuth's
+          // default JWE decode, which can't read the HS256 JWT authOptions.jwt
+          // actually issues - every request then looks unauthenticated.
+          jwt: {
+            decode: authOptions.jwt!.decode,
           },
         }
       )
