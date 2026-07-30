@@ -1,0 +1,46 @@
+// Response shape from portfolio-manager-backend's /portfolio-rollup
+// endpoint — only the top-level totals are consumed by the Overview page;
+// the Securities/ticker detail pages declare their own local, narrower
+// interfaces instead of importing this one.
+
+export interface OpenTickerRollup {
+  ticker: string
+  category: string
+  nativeCurrency: string
+  currentShares: number
+  costBasisNative: number
+  costBasisCHF: number
+  currentPriceNative: number
+  currentFxRateToCHF: number
+  marketValueNative: number
+  marketValueCHF: number
+  unrealizedGainNative: number
+  unrealizedGainCHF: number
+  dividendsCHF: number
+  priceTimestamp: string
+  priceSource: string
+  dailyChangePercent: number
+  dailyChange: number
+}
+
+export interface ClosedTickerRollup {
+  ticker: string
+  dividendsCHF: number
+  realizedGainCHF: number
+}
+
+export interface TickerPriceError {
+  ticker: string
+  error: string
+}
+
+export interface PortfolioRollup {
+  openTickers: OpenTickerRollup[]
+  closedTickers: ClosedTickerRollup[]
+  priceErrors: TickerPriceError[]
+  totalCostBasisCHF: number
+  totalMarketValueCHF: number
+  totalUnrealizedGainCHF: number
+  totalDividendsCHF: number
+  totalRealizedGainCHF: number
+}
