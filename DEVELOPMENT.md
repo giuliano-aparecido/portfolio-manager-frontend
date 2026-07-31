@@ -30,6 +30,19 @@ never need real Google OAuth credentials: signing in uses a fixed
 skips route protection entirely. Google OAuth and the full auth flow only
 apply in a production build.
 
+## Day-to-day start/stop
+
+After the first-time setup above, `scripts/start.ps1` and `scripts/stop.ps1`
+(Windows PowerShell) start/stop the dev server in the background:
+
+```powershell
+.\scripts\start.ps1   # npm run dev, backgrounded, logs to .dev-server.log
+.\scripts\stop.ps1
+```
+
+Needs `portfolio-manager-backend` already running (its own
+`scripts/start.ps1`) to actually load any data.
+
 ## Type-checking and building
 
 ```bash
