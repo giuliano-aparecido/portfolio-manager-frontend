@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
 import type { PortfolioRollup } from '@/lib/portfolio/types'
@@ -15,14 +16,22 @@ function gainClass(n: number) {
 }
 
 export default function OverviewPage() {
+  const { status } = useSession()
   const [securities, setSecurities] = useState<PortfolioRollup | null>(null)
   const [passive, setPassive] = useState<PassiveRollup | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Middleware already blocks anonymous requests to this page server-side
+    // in production, but this avoids a wasted backend round trip during the
+    // brief moment useSession() takes to hydrate client-side (and defends
+    // against ever firing this call with no session at all). Skipped in
+    // development, where there's no sign-in step at all and the backend
+    // auto-provisions a fixed user regardless of session state.
+    if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return
     load(false)
-  }, [])
+  }, [status])
 
   async function load(forceRefresh: boolean) {
     setIsLoading(true)

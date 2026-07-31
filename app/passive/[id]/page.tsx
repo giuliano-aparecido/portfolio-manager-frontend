@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
@@ -21,6 +22,7 @@ type SortKey = 'date' | 'type' | 'amount'
 type SortDir = 'asc' | 'desc'
 
 export default function PassiveInvestmentDetailPage() {
+  const { status } = useSession()
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const id = Number(params.id)
@@ -36,9 +38,16 @@ export default function PassiveInvestmentDetailPage() {
   const [txnSortDir, setTxnSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
+    // Middleware already blocks anonymous requests to this page server-side
+    // in production, but this avoids a wasted backend round trip during the
+    // brief moment useSession() takes to hydrate client-side (and defends
+    // against ever firing this call with no session at all). Skipped in
+    // development, where there's no sign-in step at all and the backend
+    // auto-provisions a fixed user regardless of session state.
+    if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [status, id])
 
   async function load() {
     setIsLoading(true)
