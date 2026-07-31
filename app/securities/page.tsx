@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
 import InvestmentForm from '@/components/InvestmentForm'
@@ -60,6 +61,7 @@ type DailyTableSortKey = 'ticker' | 'dailyChangePercent'
 type SortDir = 'asc' | 'desc'
 
 export default function SecuritiesPage() {
+  const { status } = useSession()
   const [data, setData] = useState<PortfolioRollup | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -74,15 +76,24 @@ export default function SecuritiesPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [showRefreshSettings, setShowRefreshSettings] = useState(false)
 
-  useEffect(() => {
-    load(false)
-  }, [])
+  const isDevOrAuthenticated = process.env.NODE_ENV === 'development' || status === 'authenticated'
 
   useEffect(() => {
-    if (autoRefreshInterval <= 0) return
+    // Middleware already blocks anonymous requests to this page server-side
+    // in production, but this avoids a wasted backend round trip during the
+    // brief moment useSession() takes to hydrate client-side (and defends
+    // against ever firing this call with no session at all). Skipped in
+    // development, where there's no sign-in step at all and the backend
+    // auto-provisions a fixed user regardless of session state.
+    if (!isDevOrAuthenticated) return
+    load(false)
+  }, [isDevOrAuthenticated])
+
+  useEffect(() => {
+    if (!isDevOrAuthenticated || autoRefreshInterval <= 0) return
     const interval = setInterval(() => load(false), autoRefreshInterval * 1000)
     return () => clearInterval(interval)
-  }, [autoRefreshInterval])
+  }, [isDevOrAuthenticated, autoRefreshInterval])
 
   async function load(forceRefresh: boolean) {
     setIsLoading(true)
