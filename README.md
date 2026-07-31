@@ -2,12 +2,14 @@
 
 Next.js/React UI for a multi-currency investment portfolio tracker (FIFO
 cost basis, live Yahoo Finance pricing, a manual-gain/loss passive-investment
-ledger with recurring deposits).
+ledger with recurring deposits), calling a separate Python/FastAPI backend
+— [`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend).
 
-Adapted from the original full-stack Next.js/Prisma app to call a separate
-Python/FastAPI backend — [`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend) —
-instead of same-origin API routes. The original Node.js app remains live and
-unchanged at [`MyPortfolio`](https://github.com/GiulianoAparecido/MyPortfolio).
+## Documentation
+
+- [`PROJECT.md`](PROJECT.md) — architecture and auth design
+- [`DEVELOPMENT.md`](DEVELOPMENT.md) — full local setup, environment variables, a common auth pitfall
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — branching, PR expectations, code style
 
 ## Stack
 
