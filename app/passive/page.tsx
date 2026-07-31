@@ -22,14 +22,14 @@ export default function PassiveInvestmentPage() {
   const [editingRow, setEditingRow] = useState<PassiveInvestmentRollupRow | null>(null)
 
   useEffect(() => {
-    load()
+    load(false)
   }, [])
 
-  async function load() {
+  async function load(forceRefresh: boolean) {
     setIsLoading(true)
     setError('')
     try {
-      const res = await apiFetch('/passive-rollup')
+      const res = await apiFetch(`/passive-rollup${forceRefresh ? '?refresh=true' : ''}`)
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(body.error || `Request failed: ${res.status}`)
@@ -45,7 +45,7 @@ export default function PassiveInvestmentPage() {
   function handleSaved() {
     setShowAddForm(false)
     setEditingRow(null)
-    load()
+    load(false)
   }
 
   function toExisting(row: PassiveInvestmentRollupRow): ExistingPassiveInvestment {
@@ -68,7 +68,7 @@ export default function PassiveInvestmentPage() {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Request failed: ${res.status}`)
       }
-      load()
+      load(false)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to delete passive investment')
     }
@@ -89,7 +89,7 @@ export default function PassiveInvestmentPage() {
             Add investment
           </button>
           <button
-            onClick={load}
+            onClick={() => load(true)}
             disabled={isLoading}
             className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm disabled:opacity-50"
           >

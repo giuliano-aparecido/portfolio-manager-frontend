@@ -21,16 +21,17 @@ export default function OverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    load()
+    load(false)
   }, [])
 
-  async function load() {
+  async function load(forceRefresh: boolean) {
     setIsLoading(true)
     setError('')
     try {
+      const suffix = forceRefresh ? '?refresh=true' : ''
       const [securitiesRes, passiveRes] = await Promise.all([
-        apiFetch('/portfolio-rollup'),
-        apiFetch('/passive-rollup'),
+        apiFetch(`/portfolio-rollup${suffix}`),
+        apiFetch(`/passive-rollup${suffix}`),
       ])
       const securitiesBody = await securitiesRes.json().catch(() => ({}))
       const passiveBody = await passiveRes.json().catch(() => ({}))
@@ -84,7 +85,7 @@ export default function OverviewPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Overview</h1>
         <button
-          onClick={load}
+          onClick={() => load(true)}
           disabled={isLoading}
           className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm disabled:opacity-50"
         >
