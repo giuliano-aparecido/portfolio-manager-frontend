@@ -3,9 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
+import { fmt, gainClass } from '@/lib/format'
 import InvestmentForm from '@/components/InvestmentForm'
-import CategoryBreakdown from '@/components/CategoryBreakdown'
+
+// recharts pulls in a sizeable bundle — load it only in the browser, only
+// once this page actually renders the chart, instead of in every page's
+// initial JS bundle.
+const CategoryBreakdown = dynamic(() => import('@/components/CategoryBreakdown'), { ssr: false })
 
 interface OpenTickerRollup {
   ticker: string
@@ -46,14 +52,6 @@ interface PortfolioRollup {
   totalUnrealizedGainCHF: number
   totalDividendsCHF: number
   totalRealizedGainCHF: number
-}
-
-function fmt(n: number) {
-  return n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function gainClass(n: number) {
-  return n >= 0 ? 'text-green-700' : 'text-red-700'
 }
 
 type SortKey = 'ticker' | 'shares' | 'costBasis' | 'price' | 'marketValue' | 'unrealizedGL' | 'portfolio' | 'unrealizedGLPercent' | 'unrealizedGLPercentCHF'
@@ -279,6 +277,7 @@ export default function SecuritiesPage() {
           </button>
           <button
             onClick={() => setShowRefreshSettings(!showRefreshSettings)}
+            aria-label="Auto-refresh settings"
             className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700"
           >
             ⚙️

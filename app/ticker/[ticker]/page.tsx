@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { fmt, gainClass } from '@/lib/format'
 import InvestmentForm from '@/components/InvestmentForm'
 import TransactionForm, { ExistingTransaction } from '@/components/TransactionForm'
 
@@ -51,14 +52,6 @@ interface TickerDetail {
   totalRealizedGainCHF: number
   realizedGains: RealizedGainRow[]
   transactions: TransactionRow[]
-}
-
-function fmt(n: number) {
-  return n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function gainClass(n: number) {
-  return n >= 0 ? 'text-green-700' : 'text-red-700'
 }
 
 type SortKey = 'date' | 'type' | 'quantity' | 'price' | 'fx'
@@ -480,8 +473,8 @@ export default function TickerDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {getSortedSales(data.realizedGains).map((r, i) => (
-                <tr key={i}>
+              {getSortedSales(data.realizedGains).map((r) => (
+                <tr key={`${r.date}-${r.qtySold}-${r.proceedsNative}-${r.costBasisNative}`}>
                   <td className="px-4 py-3 text-gray-900">{r.date.slice(0, 10)}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">{r.qtySold.toFixed(4)}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">

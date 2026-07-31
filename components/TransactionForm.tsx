@@ -80,8 +80,11 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+          <label htmlFor="transaction-type" className="block text-xs font-medium text-gray-600 mb-1">
+            Type
+          </label>
           <select
+            id="transaction-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -94,8 +97,11 @@ export default function TransactionForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <label htmlFor="transaction-date" className="block text-xs font-medium text-gray-600 mb-1">
+            Date
+          </label>
           <input
+            id="transaction-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -106,8 +112,11 @@ export default function TransactionForm({
 
         {isCashType ? (
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Cash amount (native currency)</label>
+            <label htmlFor="transaction-cash-amount" className="block text-xs font-medium text-gray-600 mb-1">
+              Cash amount (native currency)
+            </label>
             <input
+              id="transaction-cash-amount"
               type="number"
               step="any"
               min="0"
@@ -120,8 +129,11 @@ export default function TransactionForm({
         ) : (
           <>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Quantity (shares)</label>
+              <label htmlFor="transaction-quantity" className="block text-xs font-medium text-gray-600 mb-1">
+                Quantity (shares)
+              </label>
               <input
+                id="transaction-quantity"
                 type="number"
                 step="any"
                 min="0"
@@ -132,8 +144,11 @@ export default function TransactionForm({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Price per share (native currency)</label>
+              <label htmlFor="transaction-price-per-share" className="block text-xs font-medium text-gray-600 mb-1">
+                Price per share (native currency)
+              </label>
               <input
+                id="transaction-price-per-share"
                 type="number"
                 step="any"
                 min="0"
@@ -148,8 +163,11 @@ export default function TransactionForm({
       </div>
 
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
+        <label htmlFor="transaction-notes" className="block text-xs font-medium text-gray-600 mb-1">
+          Note (optional)
+        </label>
         <input
+          id="transaction-notes"
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

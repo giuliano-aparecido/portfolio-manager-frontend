@@ -4,16 +4,9 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { fmt, gainClass } from '@/lib/format'
 import type { PassiveRollup, PassiveInvestmentRollupRow } from '@/lib/passive/types'
 import PassiveInvestmentForm, { ExistingPassiveInvestment } from '@/components/PassiveInvestmentForm'
-
-function fmt(n: number) {
-  return n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function gainClass(n: number) {
-  return n >= 0 ? 'text-green-700' : 'text-red-700'
-}
 
 export default function PassiveInvestmentPage() {
   const { status } = useSession()

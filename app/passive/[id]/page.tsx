@@ -5,18 +5,11 @@ import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { fmt, gainClass } from '@/lib/format'
 import type { PassiveInvestmentDetail, PassiveTransactionRow } from '@/lib/passive/types'
 import PassiveInvestmentForm from '@/components/PassiveInvestmentForm'
 import PassiveTransactionForm from '@/components/PassiveTransactionForm'
 import RecurringDepositForm from '@/components/RecurringDepositForm'
-
-function fmt(n: number) {
-  return n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function gainClass(n: number) {
-  return n >= 0 ? 'text-green-700' : 'text-red-700'
-}
 
 type SortKey = 'date' | 'type' | 'amount'
 type SortDir = 'asc' | 'desc'

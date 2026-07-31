@@ -8,7 +8,15 @@ const IS_DEV = process.env.NODE_ENV === 'development'
 const DEV_EMAIL = 'dev@local.test'
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 days, NextAuth's default
 
-const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || 'dev-only-insecure-secret-change-me')
+const INSECURE_DEFAULT_SECRET = 'dev-only-insecure-secret-change-me'
+
+if (!IS_DEV && (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET === INSECURE_DEFAULT_SECRET)) {
+  throw new Error(
+    'NEXTAUTH_SECRET must be set to a real secret outside development — refusing to sign session tokens with the insecure default.'
+  )
+}
+
+const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || INSECURE_DEFAULT_SECRET)
 
 export const authOptions: NextAuthOptions = {
   providers: IS_DEV
