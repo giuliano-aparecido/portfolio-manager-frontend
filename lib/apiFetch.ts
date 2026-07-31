@@ -1,6 +1,9 @@
+import { signOut } from 'next-auth/react'
+
 let cachedToken: string | null = null
 let cachedAt = 0
 const TOKEN_CACHE_MS = 60_000 // re-fetch at most once a minute
+let signingOut = false
 
 async function getCachedToken(): Promise<string | null> {
   const now = Date.now()
@@ -38,5 +41,18 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
-  return fetch(`${baseUrl}${path}`, { ...init, headers })
+  const res = await fetch(`${baseUrl}${path}`, { ...init, headers })
+
+  // A valid NextAuth session only means Google confirmed the account -
+  // the backend's users table is the actual allowlist. A 401 here means
+  // this account isn't authorized at all, so the session shouldn't be
+  // treated as "logged in" any further: sign out immediately rather than
+  // leaving a half-authenticated shell (nav + email still visible) next
+  // to an error banner.
+  if (res.status === 401 && !signingOut) {
+    signingOut = true
+    void signOut({ callbackUrl: '/login?error=AccessDenied' })
+  }
+
+  return res
 }
