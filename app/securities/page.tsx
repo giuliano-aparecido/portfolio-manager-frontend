@@ -360,7 +360,6 @@ export default function SecuritiesPage() {
                   <tr>
                     <th className="px-4 py-3 text-left"><button onClick={() => toggleGainersSort('ticker')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer">{gainersSort === 'ticker' ? (gainersDir === 'asc' ? 'Ticker ↑' : 'Ticker ↓') : 'Ticker'}</button></th>
                     <th className="px-4 py-3"><button onClick={() => toggleGainersSort('dailyChangePercent')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer w-full text-right">{gainersSort === 'dailyChangePercent' ? (gainersDir === 'asc' ? 'Price Change % ↑' : 'Price Change % ↓') : 'Price Change %'}</button></th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Change</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -373,9 +372,6 @@ export default function SecuritiesPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-mono font-semibold text-green-700">
                           {t.dailyChangePercent.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-semibold text-green-700">
-                          {fmt(t.dailyChange)} {t.nativeCurrency}
                         </td>
                       </tr>
                     ))}
@@ -392,7 +388,6 @@ export default function SecuritiesPage() {
                   <tr>
                     <th className="px-4 py-3 text-left"><button onClick={() => toggleLosersSort('ticker')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer">{losersSort === 'ticker' ? (losersDir === 'asc' ? 'Ticker ↑' : 'Ticker ↓') : 'Ticker'}</button></th>
                     <th className="px-4 py-3"><button onClick={() => toggleLosersSort('dailyChangePercent')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer w-full text-right">{losersSort === 'dailyChangePercent' ? (losersDir === 'asc' ? 'Price Change % ↑' : 'Price Change % ↓') : 'Price Change %'}</button></th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Change</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -405,9 +400,6 @@ export default function SecuritiesPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-mono font-semibold text-red-700">
                           {t.dailyChangePercent.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-semibold text-red-700">
-                          {fmt(t.dailyChange)} {t.nativeCurrency}
                         </td>
                       </tr>
                     ))}

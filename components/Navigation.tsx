@@ -12,13 +12,15 @@ const NAV_LINKS = [
 ]
 
 export default function Navigation() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   function linkClass(href: string) {
     return pathname === href ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'
   }
+
+  if (status !== 'authenticated') return null
 
   return (
     <nav className="bg-white shadow">

@@ -410,18 +410,22 @@ export default function TickerDetailPage() {
               <th className="px-4 py-3 text-left"><SortHeader label="Type" sortKeyVal="type" /></th>
               <th className="px-4 py-3 text-right"><SortHeader label="Quantity" sortKeyVal="quantity" /></th>
               <th className="px-4 py-3 text-right"><SortHeader label="Price/share" sortKeyVal="price" /></th>
+              <th className="px-4 py-3 text-right font-semibold text-gray-900">Total Amount</th>
               <th className="px-4 py-3 text-right"><SortHeader label="FX to CHF" sortKeyVal="fx" /></th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">Note</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {getSortedTransactions(data.transactions).map((t) => (
+            {getSortedTransactions(data.transactions).map((t) => {
+              const totalAmount = t.quantity != null && t.pricePerShare != null ? t.quantity * t.pricePerShare : t.cashAmount
+              return (
               <tr key={t.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-900">{t.date.slice(0, 10)}</td>
                 <td className="px-4 py-3 text-gray-900">{t.type}</td>
                 <td className="px-4 py-3 text-right font-mono text-gray-900">{t.quantity != null ? t.quantity.toFixed(4) : '—'}</td>
                 <td className="px-4 py-3 text-right font-mono text-gray-900">{t.pricePerShare != null ? t.pricePerShare.toFixed(4) : '—'}</td>
+                <td className="px-4 py-3 text-right font-mono text-gray-900">{totalAmount != null ? fmt(totalAmount) : '—'}</td>
                 <td className="px-4 py-3 text-right font-mono text-gray-600">{t.fxRateToCHF.toFixed(4)}</td>
                 <td className="px-4 py-3 text-gray-600">{t.notes || ''}</td>
                 <td className="px-4 py-3 text-right">
@@ -439,10 +443,11 @@ export default function TickerDetailPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
             {data.transactions.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
                   No transactions yet.
                 </td>
               </tr>
@@ -459,6 +464,7 @@ export default function TickerDetailPage() {
               <tr>
                 <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyVal="date" isSales /></th>
                 <th className="px-4 py-3 text-right"><SortHeader label="Qty sold" sortKeyVal="qty" isSales /></th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-900">Sell Price</th>
                 <th className="px-4 py-3 text-right"><SortHeader label="Proceeds" sortKeyVal="proceeds" isSales /></th>
                 <th className="px-4 py-3 text-right"><SortHeader label="Cost basis" sortKeyVal="costbasis" isSales /></th>
                 <th className="px-4 py-3 text-right"><SortHeader label="Gain" sortKeyVal="gain" isSales /></th>
@@ -469,6 +475,9 @@ export default function TickerDetailPage() {
                 <tr key={i}>
                   <td className="px-4 py-3 text-gray-900">{r.date.slice(0, 10)}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">{r.qtySold.toFixed(4)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-gray-900">
+                    {r.qtySold > 0 ? (r.proceedsNative / r.qtySold).toFixed(4) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">{fmt(r.proceedsNative)}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">{fmt(r.costBasisNative)}</td>
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${gainClass(r.gainCHF)}`}>{fmt(r.gainCHF)}</td>
