@@ -131,6 +131,20 @@ export default function PassiveInvestmentDetailPage() {
     }
   }
 
+  async function handleDeleteRecurring() {
+    if (!confirm('Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.')) return
+    try {
+      const res = await apiFetch(`/passive-investments/${id}/recurring-deposit`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Request failed: ${res.status}`)
+      }
+      load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to delete recurring deposit')
+    }
+  }
+
   if (isLoading && !data) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -303,9 +317,14 @@ export default function PassiveInvestmentDetailPage() {
         <div className="mb-6 p-4 bg-white rounded-lg shadow text-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-gray-500 uppercase font-semibold">Recurring Deposit</div>
-            <button onClick={() => setShowRecurringForm(true)} className="text-blue-600 text-xs">
-              Edit
-            </button>
+            <div>
+              <button onClick={() => setShowRecurringForm(true)} className="text-blue-600 text-xs mr-3">
+                Edit
+              </button>
+              <button onClick={handleDeleteRecurring} className="text-red-600 text-xs">
+                Delete
+              </button>
+            </div>
           </div>
           <div className="text-gray-900">
             {fmt(data.recurringDeposit.amountNative)} {data.currency} · {data.recurringDeposit.frequency} · starts{' '}
