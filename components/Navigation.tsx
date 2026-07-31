@@ -20,7 +20,11 @@ export default function Navigation() {
     return pathname === href ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'
   }
 
-  if (status !== 'authenticated') return null
+  // In development there's no sign-in step at all (see DEVELOPMENT.md) -
+  // useSession() never resolves to 'authenticated' unless someone manually
+  // clicks through the dev sign-in flow, which would otherwise hide the
+  // nav entirely for the normal `npm run dev` workflow.
+  if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return null
 
   return (
     <nav className="bg-white shadow">
