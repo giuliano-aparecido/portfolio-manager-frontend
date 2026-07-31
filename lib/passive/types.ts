@@ -59,6 +59,7 @@ export interface PassiveInvestmentRollupRow {
 export interface PassiveFxError {
   currency: string
   error: string
+  affectedInvestments: string[]
 }
 
 export interface PassiveRollup {
