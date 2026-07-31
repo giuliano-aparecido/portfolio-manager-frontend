@@ -203,6 +203,9 @@ export default function PassiveInvestmentPage() {
                 {data.fxErrors.map((e) => (
                   <li key={e.currency}>
                     {e.currency}: {e.error}
+                    {e.affectedInvestments.length > 0 && (
+                      <> — affects: {e.affectedInvestments.join(', ')}</>
+                    )}
                   </li>
                 ))}
               </ul>

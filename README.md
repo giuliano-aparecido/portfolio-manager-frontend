@@ -38,6 +38,19 @@ npm run dev
 Requires `portfolio-manager-backend` running locally (see its README) at
 the URL configured in `NEXT_PUBLIC_API_BASE_URL`.
 
+## Tests
+
+```bash
+npm run test        # vitest run
+npm run test:watch  # vitest, watch mode
+```
+
+Vitest + React Testing Library. Coverage is deliberately concentrated on the
+auth bridge (`lib/auth.ts`, `lib/apiFetch.ts`, `components/AuthGate.tsx`,
+`components/Navigation.tsx`) — the one area of this app that has already
+regressed twice in real usage (a missed dev-mode bypass, and a duplicate
+sign-out race), not a blanket coverage target.
+
 ## Type-check / build
 
 ```bash
