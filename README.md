@@ -9,6 +9,12 @@ Python/FastAPI backend — [`portfolio-manager-backend`](https://github.com/Giul
 instead of same-origin API routes. The original Node.js app remains live and
 unchanged at [`MyPortfolio`](https://github.com/GiulianoAparecido/MyPortfolio).
 
+## Documentation
+
+- [`PROJECT.md`](PROJECT.md) — architecture, auth design, how this relates to the backend and the original app
+- [`DEVELOPMENT.md`](DEVELOPMENT.md) — full local setup, environment variables, a common auth pitfall
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — branching, PR expectations, code style
+
 ## Stack
 
 - **Next.js 14** + **React 18** + **TypeScript**
