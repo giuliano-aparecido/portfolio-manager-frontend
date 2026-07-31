@@ -75,20 +75,20 @@ export default function SecuritiesPage() {
   const [showRefreshSettings, setShowRefreshSettings] = useState(false)
 
   useEffect(() => {
-    load()
+    load(false)
   }, [])
 
   useEffect(() => {
     if (autoRefreshInterval <= 0) return
-    const interval = setInterval(() => load(), autoRefreshInterval * 1000)
+    const interval = setInterval(() => load(false), autoRefreshInterval * 1000)
     return () => clearInterval(interval)
   }, [autoRefreshInterval])
 
-  async function load() {
+  async function load(forceRefresh: boolean) {
     setIsLoading(true)
     setError('')
     try {
-      const res = await apiFetch('/portfolio-rollup')
+      const res = await apiFetch(`/portfolio-rollup${forceRefresh ? '?refresh=true' : ''}`)
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(body.error || `Request failed: ${res.status}`)
@@ -106,7 +106,7 @@ export default function SecuritiesPage() {
 
   function handleCreated() {
     setShowAddInvestment(false)
-    load()
+    load(false)
   }
 
   function toggleSort(key: SortKey) {
@@ -273,7 +273,7 @@ export default function SecuritiesPage() {
             ⚙️
           </button>
           <button
-            onClick={load}
+            onClick={() => load(true)}
             disabled={isLoading}
             className="px-4 py-2 bg-gray-900 text-white rounded-md text-sm disabled:opacity-50"
           >
