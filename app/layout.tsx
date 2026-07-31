@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import AuthGate from '@/components/AuthGate'
 import Navigation from '@/components/Navigation'
 import { SessionProvider } from '@/components/SessionProvider'
 import './globals.css'
@@ -17,8 +18,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-gray-50">
         <SessionProvider>
-          <Navigation />
-          {children}
+          <AuthGate>
+            <Navigation />
+            {children}
+          </AuthGate>
         </SessionProvider>
       </body>
     </html>
