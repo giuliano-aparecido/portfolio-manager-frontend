@@ -71,8 +71,11 @@ export default function PassiveTransactionForm({
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+          <label htmlFor="passive-transaction-type" className="block text-xs font-medium text-gray-600 mb-1">
+            Type
+          </label>
           <select
+            id="passive-transaction-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -85,8 +88,11 @@ export default function PassiveTransactionForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <label htmlFor="passive-transaction-date" className="block text-xs font-medium text-gray-600 mb-1">
+            Date
+          </label>
           <input
+            id="passive-transaction-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -95,8 +101,11 @@ export default function PassiveTransactionForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Amount ({currency})</label>
+          <label htmlFor="passive-transaction-amount" className="block text-xs font-medium text-gray-600 mb-1">
+            Amount ({currency})
+          </label>
           <input
+            id="passive-transaction-amount"
             type="number"
             step="any"
             min="0"
@@ -109,8 +118,11 @@ export default function PassiveTransactionForm({
       </div>
 
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
+        <label htmlFor="passive-transaction-notes" className="block text-xs font-medium text-gray-600 mb-1">
+          Note (optional)
+        </label>
         <input
+          id="passive-transaction-notes"
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

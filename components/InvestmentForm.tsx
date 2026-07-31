@@ -82,8 +82,11 @@ export default function InvestmentForm({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Ticker</label>
+          <label htmlFor="investment-ticker" className="block text-xs font-medium text-gray-600 mb-1">
+            Ticker
+          </label>
           <input
+            id="investment-ticker"
             type="text"
             value={ticker}
             onChange={(e) => setTicker(e.target.value.toUpperCase())}
@@ -94,8 +97,11 @@ export default function InvestmentForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Stock market</label>
+          <label htmlFor="investment-market" className="block text-xs font-medium text-gray-600 mb-1">
+            Stock market
+          </label>
           <select
+            id="investment-market"
             value={market}
             onChange={(e) => setMarket(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -108,8 +114,11 @@ export default function InvestmentForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+          <label htmlFor="investment-category" className="block text-xs font-medium text-gray-600 mb-1">
+            Category
+          </label>
           <select
+            id="investment-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -122,8 +131,11 @@ export default function InvestmentForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
+          <label htmlFor="investment-currency" className="block text-xs font-medium text-gray-600 mb-1">
+            Currency
+          </label>
           <select
+            id="investment-currency"
             value={nativeCurrency}
             onChange={(e) => setNativeCurrency(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"

@@ -100,8 +100,11 @@ export default function RecurringDepositForm({
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Amount ({currency})</label>
+          <label htmlFor="recurring-deposit-amount" className="block text-xs font-medium text-gray-600 mb-1">
+            Amount ({currency})
+          </label>
           <input
+            id="recurring-deposit-amount"
             type="number"
             step="any"
             min="0"
@@ -112,8 +115,11 @@ export default function RecurringDepositForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Start date</label>
+          <label htmlFor="recurring-deposit-start-date" className="block text-xs font-medium text-gray-600 mb-1">
+            Start date
+          </label>
           <input
+            id="recurring-deposit-start-date"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
@@ -127,8 +133,11 @@ export default function RecurringDepositForm({
           )}
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+          <label htmlFor="recurring-deposit-frequency" className="block text-xs font-medium text-gray-600 mb-1">
+            Frequency
+          </label>
           <select
+            id="recurring-deposit-frequency"
             value={frequency}
             onChange={(e) => setFrequency(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -141,8 +150,11 @@ export default function RecurringDepositForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">End date (optional)</label>
+          <label htmlFor="recurring-deposit-end-date" className="block text-xs font-medium text-gray-600 mb-1">
+            End date (optional)
+          </label>
           <input
+            id="recurring-deposit-end-date"
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
@@ -152,8 +164,11 @@ export default function RecurringDepositForm({
       </div>
 
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
+        <label htmlFor="recurring-deposit-notes" className="block text-xs font-medium text-gray-600 mb-1">
+          Note (optional)
+        </label>
         <input
+          id="recurring-deposit-notes"
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}

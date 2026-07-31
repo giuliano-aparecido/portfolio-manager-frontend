@@ -86,8 +86,11 @@ export default function PassiveInvestmentForm({
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+          <label htmlFor="passive-investment-name" className="block text-xs font-medium text-gray-600 mb-1">
+            Name
+          </label>
           <input
+            id="passive-investment-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -97,8 +100,11 @@ export default function PassiveInvestmentForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+          <label htmlFor="passive-investment-type" className="block text-xs font-medium text-gray-600 mb-1">
+            Type
+          </label>
           <select
+            id="passive-investment-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -111,8 +117,11 @@ export default function PassiveInvestmentForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
+          <label htmlFor="passive-investment-currency" className="block text-xs font-medium text-gray-600 mb-1">
+            Currency
+          </label>
           <select
+            id="passive-investment-currency"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
@@ -126,8 +135,11 @@ export default function PassiveInvestmentForm({
         </div>
         {isEdit && (
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Gain/Loss %</label>
+            <label htmlFor="passive-investment-gain-loss-pct" className="block text-xs font-medium text-gray-600 mb-1">
+              Gain/Loss %
+            </label>
             <input
+              id="passive-investment-gain-loss-pct"
               type="number"
               step="0.01"
               value={gainLossPct}
@@ -143,8 +155,11 @@ export default function PassiveInvestmentForm({
           </div>
         )}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
+          <label htmlFor="passive-investment-notes" className="block text-xs font-medium text-gray-600 mb-1">
+            Notes (optional)
+          </label>
           <input
+            id="passive-investment-notes"
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
