@@ -3,13 +3,8 @@
 ## What this is
 
 The web UI for a multi-currency personal investment portfolio tracker,
-with CHF as the base currency. It's adapted from the original full-stack
-[`MyPortfolio`](https://github.com/GiulianoAparecido/MyPortfolio) app
-(Next.js/TypeScript/Prisma, same-origin API routes) to instead call a
-separate Python/FastAPI backend —
+with CHF as the base currency, calling a separate Python/FastAPI backend —
 [`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend).
-The original app remains live and unchanged; this is a parallel rewrite,
-not a replacement in place.
 
 Two portfolio types are tracked, with separate pages because they behave
 differently:
@@ -47,15 +42,14 @@ middleware.ts              Page-level route protection (redirects to /login)
 
 Every page is a client component that calls the backend directly via
 `apiFetch()` — there's no server-side data fetching or same-origin API
-route standing in between (unlike the original app, which had its own
-`/api/*` routes backed by Prisma). This frontend has **no database
-access at all**; every piece of data comes from the FastAPI backend.
+route standing in between. This frontend has **no database access at
+all**; every piece of data comes from the FastAPI backend.
 
 ## Auth architecture
 
-Google OAuth still happens entirely through NextAuth, exactly as in the
-original app — the login UX is unchanged. What's different is the
-session token format: NextAuth's default is an encrypted JWE, which isn't
+Google OAuth happens entirely through NextAuth, a standard login flow.
+What's less standard is the session token format: NextAuth's default is
+an encrypted JWE, which isn't
 practical to verify from a separate Python service. `authOptions.jwt`
 overrides the default `encode`/`decode` to issue/verify a standard
 HS256-signed JWT instead, using `NEXTAUTH_SECRET` as a key shared with

@@ -56,6 +56,5 @@ while silently breaking the other.
 - Shared TypeScript types/constants belong in `lib/portfolio/` or
   `lib/passive/`, not duplicated per-component. Some page components do
   still declare their own local interfaces mirroring the backend response
-  shape (matching the original app's own pattern) — that's an accepted
-  inconsistency, not something to "fix" opportunistically in an unrelated
-  PR.
+  shape instead — that's an accepted inconsistency, not something to "fix"
+  opportunistically in an unrelated PR.
