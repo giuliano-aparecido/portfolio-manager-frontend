@@ -19,9 +19,9 @@ function LoginContent() {
         {error && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">
-              {error === 'AccessDenied'
-                ? 'Access denied. Only authorized users can access this portfolio.'
-                : `Sign in error: ${error}`}
+              {error === 'AccessDenied' && 'Access denied. Only authorized users can access this portfolio.'}
+              {error === 'SessionExpired' && 'You were signed out after a period of inactivity. Please sign in again.'}
+              {error !== 'AccessDenied' && error !== 'SessionExpired' && `Sign in error: ${error}`}
             </div>
           </div>
         )}
