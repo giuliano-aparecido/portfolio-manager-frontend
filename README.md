@@ -13,7 +13,7 @@ ledger with recurring deposits), calling a separate Python/FastAPI backend
 
 ## Stack
 
-- **Next.js 14** + **React 18** + **TypeScript**
+- **Next.js 16** + **React 19** + **TypeScript**
 - **Tailwind CSS**
 - **NextAuth.js** — Google OAuth in production, a fixed auto-signin dev user
   locally; session tokens are standard HS256 JWTs (not NextAuth's default
@@ -47,9 +47,10 @@ npm run test:watch  # vitest, watch mode
 
 Vitest + React Testing Library. Coverage is deliberately concentrated on the
 auth bridge (`lib/auth.ts`, `lib/apiFetch.ts`, `components/AuthGate.tsx`,
-`components/Navigation.tsx`) — the one area of this app that has already
-regressed twice in real usage (a missed dev-mode bypass, and a duplicate
-sign-out race), not a blanket coverage target.
+`components/Navigation.tsx`, `components/SessionProvider.tsx`) — the one
+area of this app that has already regressed multiple times in real usage
+(a missed dev-mode bypass, a duplicate sign-out race, an idle-logout timer
+that silently reset on every page reload), not a blanket coverage target.
 
 ## Type-check / build
 

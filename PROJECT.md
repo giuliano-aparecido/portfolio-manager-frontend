@@ -37,7 +37,12 @@ lib/
   auth.ts                  NextAuth config, including the custom JWT encode/decode
   apiFetch.ts              fetch() wrapper: attaches the session as a Bearer token
   portfolio/, passive/     Shared TypeScript types + validation constants
-middleware.ts              Page-level route protection (redirects to /login)
+components/
+  SessionProvider.tsx      NextAuth session context + idle-logout watcher (below)
+proxy.ts                   Page-level route protection (redirects to /login) -
+                            named middleware.ts before the Next.js 16 upgrade;
+                            Next 16 renamed the convention, next-auth's
+                            withAuth() itself didn't need any change
 ```
 
 Every page is a client component that calls the backend directly via
@@ -62,13 +67,12 @@ JS), `app/api/auth/token/route.ts` is a small dedicated route that
 extracts the raw encoded token so `lib/apiFetch.ts` can attach it as
 `Authorization: Bearer <token>` on every backend call.
 
-`middleware.ts`'s `withAuth()` call must be given the same custom
-`jwt.decode` function `authOptions` uses — otherwise it silently falls
-back to NextAuth's default JWE decode, which can't read this app's HS256
-tokens, and every request looks unauthenticated regardless of a real
-session. If pages ever start bouncing back to `/login` right after a
-successful sign-in with no visible error, this is the first thing to
-check.
+`proxy.ts`'s `withAuth()` call must be given the same custom `jwt.decode`
+function `authOptions` uses — otherwise it silently falls back to
+NextAuth's default JWE decode, which can't read this app's HS256 tokens,
+and every request looks unauthenticated regardless of a real session. If
+pages ever start bouncing back to `/login` right after a successful
+sign-in with no visible error, this is the first thing to check.
 
 **Allowlist enforcement lives entirely backend-side.** The frontend's
 `signIn` callback only asserts that Google returned an email address — it
@@ -81,6 +85,31 @@ separate, potentially-diverging copies of the same allowlist check.
 
 In development (`NODE_ENV=development`), a `CredentialsProvider` lets you
 sign in instantly as a fixed `dev@local.test` user — no real Google
-credentials needed locally, and `middleware.ts` skips its own auth check
+credentials needed locally, and `proxy.ts` skips its own auth check
 entirely in dev. Production requires a real Google OAuth app and enforces
 the backend's allowlist.
+
+## Idle logout
+
+`components/SessionProvider.tsx` signs a user out after 15 minutes of no
+mouse/keyboard/scroll/touch activity, redirecting to
+`/login?error=SessionExpired`. This matters more here than in a typical
+app: real portfolio/transaction data sits on screen the whole time a tab
+is left open and idle.
+
+The naive version of this (a plain in-memory `setTimeout`) doesn't
+actually work on mobile: a fresh page load — which is exactly what
+happens when a mobile browser discards a backgrounded tab and reloads it
+later — resets the timer to a full 15 minutes with no memory of how long
+the user was actually away. The fix persists a last-activity timestamp to
+`localStorage` and checks elapsed wall-clock time against it on mount and
+on `visibilitychange`, signing out immediately if the threshold has
+already passed rather than always granting a fresh grace period. See the
+component's own comments and `components/SessionProvider.test.tsx` for
+the specific regression this covers.
+
+Deliberately not touched: the underlying session/JWT lifetime
+(`SESSION_MAX_AGE_SECONDS` in `lib/auth.ts`, currently NextAuth's 30-day
+default). That token doubles as the bearer token the backend verifies
+directly, so shortening it is a separate, more consequential call than an
+idle-timer addition should make as a side effect.

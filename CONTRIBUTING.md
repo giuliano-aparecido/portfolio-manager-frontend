@@ -25,11 +25,11 @@ npm run build
 ```
 
 `npm run build` is not optional here — it catches a category of bug
-`type-check` can't: Edge Runtime incompatibilities in `middleware.ts`
+`type-check` can't: Edge Runtime incompatibilities in `proxy.ts`
 (e.g. a dependency that only works in Node, not the Edge sandbox Vercel
-actually runs middleware in).
+actually runs Next.js's proxy/middleware layer in).
 
-If the change touches sign-in, `middleware.ts`, or anything under
+If the change touches sign-in, `proxy.ts`, or anything under
 `lib/auth.ts`/`lib/apiFetch.ts`, do a manual end-to-end check: build in
 production mode (`npm run build && npm run start`), and confirm both that
 an unauthenticated request redirects to `/login` *and* that a real
