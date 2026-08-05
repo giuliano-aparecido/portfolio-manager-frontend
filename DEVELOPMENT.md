@@ -26,7 +26,7 @@ npm run dev
 
 In development (`npm run dev`, which sets `NODE_ENV=development`), you
 never need real Google OAuth credentials: signing in uses a fixed
-`dev@local.test` user via a `CredentialsProvider`, and `middleware.ts`
+`dev@local.test` user via a `CredentialsProvider`, and `proxy.ts`
 skips route protection entirely. Google OAuth and the full auth flow only
 apply in a production build.
 
@@ -51,10 +51,10 @@ npm run build
 ```
 
 Both should be run before pushing — `npm run build` in particular
-catches Edge Runtime incompatibilities in `middleware.ts` that
+catches Edge Runtime incompatibilities in `proxy.ts` that
 `type-check` alone won't (e.g. a dependency pulling in a Node-only API
 that isn't available in the Edge sandbox Vercel actually deploys
-middleware to).
+Next.js's proxy/middleware layer to).
 
 ## Testing a change that touches auth
 
@@ -62,17 +62,21 @@ Because the session token is a custom HS256 JWT rather than NextAuth's
 default encrypted format, it's possible to mint one directly (matching
 `authOptions.jwt.encode`'s exact logic) for testing without going through
 a full Google OAuth round trip — useful for scripting a check against
-`middleware.ts` or `apiFetch.ts` without a browser. See
+`proxy.ts` or `apiFetch.ts` without a browser. See
 `lib/auth.ts` for the exact `encode`/`decode` implementation to match.
 
-## Common pitfall: middleware and the JWT decode override
+## Common pitfall: proxy.ts and the JWT decode override
+
+(This file was `middleware.ts` before the Next.js 16 upgrade renamed the
+convention — same `withAuth()` call, same pitfall, just a different
+filename now.)
 
 `next-auth/middleware`'s `withAuth()` performs its own internal
 `getToken()` call, which does **not** automatically inherit
 `authOptions.jwt.decode` — it needs to be passed explicitly:
 
 ```ts
-withAuth(middleware, {
+withAuth(proxy, {
   // ...
   jwt: { decode: authOptions.jwt!.decode },
 })
