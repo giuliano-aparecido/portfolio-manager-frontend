@@ -16,7 +16,11 @@ vi.mock('@/lib/apiFetch', () => ({
 }))
 
 function mockStreamingResponse(sseBody: string) {
-  let sent = false
+  return mockChunkedStreamingResponse([sseBody])
+}
+
+function mockChunkedStreamingResponse(chunks: string[]) {
+  let index = 0
   const encoder = new TextEncoder()
   return {
     ok: true,
@@ -24,9 +28,10 @@ function mockStreamingResponse(sseBody: string) {
     body: {
       getReader: () => ({
         read: async () => {
-          if (!sent) {
-            sent = true
-            return { done: false, value: encoder.encode(sseBody) }
+          if (index < chunks.length) {
+            const chunk = chunks[index]
+            index += 1
+            return { done: false, value: encoder.encode(chunk) }
           }
           return { done: true, value: undefined }
         },
@@ -93,5 +98,70 @@ describe('AgentPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByText('Internal server error')).toBeInTheDocument())
+  })
+
+  it('flushes a final frame with no trailing blank-line separator', async () => {
+    // No "\n\n" after the last event — the stream just ends there, as a
+    // real connection close might. Without flushing the leftover buffer,
+    // this frame (and thus the visible reply) would be silently dropped.
+    const sse = 'event: token\ndata: {"text":"Done, no trailing separator."}'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(screen.getByText('Done, no trailing separator.')).toBeInTheDocument())
+  })
+
+  it('reassembles a frame split across two chunks at the boundary', async () => {
+    // The frame's "\n\n" terminator itself is split across two
+    // reader.read() calls - exercises the buffer += accumulation, not
+    // just single-chunk parsing.
+    const chunks = ['event: token\ndata: {"text":"split"}\n', '\nevent: done\ndata: {}\n\n']
+    apiFetchMock.mockResolvedValue(mockChunkedStreamingResponse(chunks))
+
+    render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(screen.getByText('split')).toBeInTheDocument())
+  })
+
+  it('aborts the in-flight stream on unmount and does not surface an error banner', async () => {
+    const abortSpy = vi.spyOn(AbortController.prototype, 'abort')
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // Rejects like a real aborted fetch would, once the signal actually
+    // aborts - not just a promise that hangs forever - so this exercises
+    // the catch block's controller.signal.aborted early-return, not merely
+    // that AbortController.abort() got called somewhere.
+    apiFetchMock.mockImplementation(
+      (_path: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        })
+    )
+
+    const { unmount } = render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(apiFetchMock).toHaveBeenCalled())
+
+    unmount()
+
+    expect(abortSpy).toHaveBeenCalled()
+    // No DOM left to assert an error banner's absence against post-unmount,
+    // but if the signal.aborted early-return were missing, the rejection
+    // above would fall through to setError on the unmounted component -
+    // this awaits a tick so any resulting console warning/unhandled
+    // rejection has a chance to surface before the assertion below.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
+
+    abortSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
   })
 })

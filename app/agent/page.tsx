@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
-import { parseSSEFrame } from '@/lib/parseSSEFrame'
+import { parseSSEFrame, type SSEFrame } from '@/lib/parseSSEFrame'
 
 // Lazy-loaded like recharts in app/securities/page.tsx — no reason to
 // bundle a markdown renderer into every page's initial load.
@@ -20,6 +20,14 @@ export default function AgentPage() {
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState('')
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    // Abandon an in-flight stream on navigation away — otherwise the read
+    // loop keeps running, keeps calling setMessages/setError on an
+    // unmounted page, and the connection never closes.
+    return () => abortControllerRef.current?.abort()
+  }, [])
 
   function appendToLastAssistant(text: string) {
     setMessages((prev) => {
@@ -40,6 +48,16 @@ export default function AgentPage() {
     })
   }
 
+  function handleFrame(parsed: SSEFrame) {
+    if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
+      appendToLastAssistant(parsed.data.text)
+    } else if (parsed.event === 'tool_call' && typeof parsed.data.name === 'string') {
+      addToolCallToLastAssistant(parsed.data.name)
+    } else if (parsed.event === 'error') {
+      throw new Error(typeof parsed.data.message === 'string' ? parsed.data.message : 'The assistant hit an error.')
+    }
+  }
+
   async function send() {
     const question = input.trim()
     if (!question || isSending) return
@@ -54,10 +72,14 @@ export default function AgentPage() {
     setIsSending(true)
     setError('')
 
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       const res = await apiFetch('/agent/ask', {
         method: 'POST',
         body: JSON.stringify({ messages: requestMessages }),
+        signal: controller.signal,
       })
 
       if (!res.ok || !res.body) {
@@ -78,20 +100,25 @@ export default function AgentPage() {
 
         for (const rawFrame of frames) {
           const parsed = parseSSEFrame(rawFrame)
-          if (!parsed) continue
-
-          if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
-            appendToLastAssistant(parsed.data.text)
-          } else if (parsed.event === 'tool_call' && typeof parsed.data.name === 'string') {
-            addToolCallToLastAssistant(parsed.data.name)
-          } else if (parsed.event === 'error') {
-            throw new Error(typeof parsed.data.message === 'string' ? parsed.data.message : 'The assistant hit an error.')
-          }
+          if (parsed) handleFrame(parsed)
         }
       }
+
+      buffer += decoder.decode() // flush a multi-byte UTF-8 sequence split across the last chunk
+
+      // The final chunk isn't guaranteed to end with the "\n\n" separator
+      // between frames — without this, a last frame with no trailing
+      // blank line (e.g. the server's closing `done`/`error` event) would
+      // sit in `buffer` and never get parsed or surfaced.
+      if (buffer.trim()) {
+        const parsed = parseSSEFrame(buffer)
+        if (parsed) handleFrame(parsed)
+      }
     } catch (e) {
+      if (controller.signal.aborted) return // navigated away or superseded — not a real error
       setError(e instanceof Error ? e.message : 'Failed to get a response')
     } finally {
+      if (abortControllerRef.current === controller) abortControllerRef.current = null
       setIsSending(false)
     }
   }
