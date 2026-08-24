@@ -22,3 +22,10 @@ Full documentation lives in dedicated files, not duplicated here:
   `proxy.ts` JWT-decode pitfall
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — **branch + PR is required here,
   never push directly to `main`** — see there for the exact workflow
+
+Fleet-wide conventions shared with this repo's siblings (including
+`portfolio-manager-backend`) live in
+[`agent-config/AGENTS.md`](agent-config/AGENTS.md) (a git submodule),
+loaded automatically below for Claude Code.
+
+@agent-config/AGENTS.md
