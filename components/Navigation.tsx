@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Overview' },
   { href: '/securities', label: 'Securities' },
   { href: '/passive', label: 'Passive Investment' },
+  { href: '/agent', label: 'Ask AI' },
 ]
 
 export default function Navigation() {

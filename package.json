@@ -17,6 +17,7 @@
     "next-auth": "^4.24.15",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.10.0"
   },
   "devDependencies": {
