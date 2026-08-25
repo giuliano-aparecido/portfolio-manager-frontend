@@ -21,6 +21,7 @@ export default function AgentPage() {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState('')
   const abortControllerRef = useRef<AbortController | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Abandon an in-flight stream on navigation away — otherwise the read
@@ -28,6 +29,10 @@ export default function AgentPage() {
     // unmounted page, and the connection never closes.
     return () => abortControllerRef.current?.abort()
   }, [])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages])
 
   function appendToLastAssistant(text: string) {
     setMessages((prev) => {
@@ -166,6 +171,7 @@ export default function AgentPage() {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       <form
@@ -179,6 +185,7 @@ export default function AgentPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about your portfolio..."
+          aria-label="Ask about your portfolio"
           disabled={isSending}
           className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
         />

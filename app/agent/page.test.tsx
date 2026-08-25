@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AgentPage from './page'
 
@@ -14,6 +14,14 @@ const apiFetchMock = vi.fn()
 vi.mock('@/lib/apiFetch', () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }))
+
+beforeEach(() => {
+  // Call history (not just the resolved value) otherwise persists across
+  // tests in this file, since apiFetchMock is a single module-level mock -
+  // without this, an assertion like `apiFetchMock.mock.calls[0]` silently
+  // picks up a call from a *previous* test instead of the current one.
+  apiFetchMock.mockReset()
+})
 
 function mockStreamingResponse(sseBody: string) {
   return mockChunkedStreamingResponse([sseBody])
@@ -44,6 +52,29 @@ describe('AgentPage', () => {
   it('renders the empty-state prompt with no messages sent yet', () => {
     render(<AgentPage />)
     expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+  })
+
+  it('has an accessible label on the chat input', () => {
+    render(<AgentPage />)
+    expect(screen.getByLabelText(/ask about your portfolio/i)).toBeInTheDocument()
+  })
+
+  it('scrolls the latest message into view as the reply streams in', async () => {
+    const scrollIntoViewSpy = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const sse = 'event: token\ndata: {"text":"hi"}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+    // The effect also fires on initial mount (its dependency array only
+    // gates re-runs, not the first run) - discard that call so the
+    // assertion below is tied to sending the message, not just mounting.
+    scrollIntoViewSpy.mockClear()
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(scrollIntoViewSpy).toHaveBeenCalled())
+    scrollIntoViewSpy.mockRestore()
   })
 
   it('sends a message, renders the user bubble, and streams the assistant reply with a tool-call badge', async () => {
