@@ -34,23 +34,20 @@ export default function AgentPage() {
     messagesEndRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
-  function appendToLastAssistant(text: string) {
+  function updateLastMessage(updater: (message: ChatMessage) => ChatMessage) {
     setMessages((prev) => {
       const next = [...prev]
-      const last = next[next.length - 1]
-      next[next.length - 1] = { ...last, content: last.content + text }
+      next[next.length - 1] = updater(next[next.length - 1])
       return next
     })
   }
 
+  function appendToLastAssistant(text: string) {
+    updateLastMessage((last) => ({ ...last, content: last.content + text }))
+  }
+
   function addToolCallToLastAssistant(name: string) {
-    setMessages((prev) => {
-      const next = [...prev]
-      const last = next[next.length - 1]
-      const toolCalls = last.toolCalls ? [...last.toolCalls, name] : [name]
-      next[next.length - 1] = { ...last, toolCalls }
-      return next
-    })
+    updateLastMessage((last) => ({ ...last, toolCalls: last.toolCalls ? [...last.toolCalls, name] : [name] }))
   }
 
   function handleFrame(parsed: SSEFrame) {
@@ -59,8 +56,46 @@ export default function AgentPage() {
     } else if (parsed.event === 'tool_call' && typeof parsed.data.name === 'string') {
       addToolCallToLastAssistant(parsed.data.name)
     } else if (parsed.event === 'error') {
-      throw new Error(typeof parsed.data.message === 'string' ? parsed.data.message : 'The assistant hit an error.')
+      const message = parsed.data.message
+      throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
     }
+  }
+
+  function processFrames(rawFrames: string[]) {
+    for (const rawFrame of rawFrames) {
+      const parsed = parseSSEFrame(rawFrame)
+      if (parsed) handleFrame(parsed)
+    }
+  }
+
+  async function readStream(body: ReadableStream<Uint8Array>): Promise<void> {
+    const reader = body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const frames = buffer.split('\n\n')
+        buffer = frames.pop() ?? ''
+        processFrames(frames)
+      }
+    } finally {
+      // Otherwise a frame that throws mid-loop (e.g. an "error" event)
+      // leaves the reader locked forever, since only the done-path above
+      // would naturally fall through to release it.
+      reader.releaseLock()
+    }
+
+    buffer += decoder.decode() // flush a multi-byte UTF-8 sequence split across the last chunk
+
+    // The final chunk isn't guaranteed to end with the "\n\n" separator
+    // between frames — without this, a last frame with no trailing
+    // blank line (e.g. the server's closing `done`/`error` event) would
+    // sit in `buffer` and never get parsed or surfaced.
+    if (buffer.trim()) processFrames([buffer])
   }
 
   async function send() {
@@ -92,33 +127,7 @@ export default function AgentPage() {
         throw new Error(body.error || `Request failed (${res.status})`)
       }
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const frames = buffer.split('\n\n')
-        buffer = frames.pop() ?? ''
-
-        for (const rawFrame of frames) {
-          const parsed = parseSSEFrame(rawFrame)
-          if (parsed) handleFrame(parsed)
-        }
-      }
-
-      buffer += decoder.decode() // flush a multi-byte UTF-8 sequence split across the last chunk
-
-      // The final chunk isn't guaranteed to end with the "\n\n" separator
-      // between frames — without this, a last frame with no trailing
-      // blank line (e.g. the server's closing `done`/`error` event) would
-      // sit in `buffer` and never get parsed or surfaced.
-      if (buffer.trim()) {
-        const parsed = parseSSEFrame(buffer)
-        if (parsed) handleFrame(parsed)
-      }
+      await readStream(res.body)
     } catch (e) {
       if (controller.signal.aborted) return // navigated away or superseded — not a real error
       setError(e instanceof Error ? e.message : 'Failed to get a response')
@@ -132,7 +141,11 @@ export default function AgentPage() {
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Ask AI</h1>
 
-      {error && <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">{error}</div>}
+      {error && (
+        <div role="alert" className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 mb-4">
         {messages.length === 0 && (

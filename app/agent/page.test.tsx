@@ -2,10 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AgentPage from './page'
 
-vi.mock('next-auth/react', () => ({
-  signOut: vi.fn(),
-}))
-
 vi.mock('react-markdown', () => ({
   default: ({ children }: { children: string }) => <>{children}</>,
 }))
@@ -43,6 +39,7 @@ function mockChunkedStreamingResponse(chunks: string[]) {
           }
           return { done: true, value: undefined }
         },
+        releaseLock: () => {},
       }),
     },
   }
@@ -104,7 +101,38 @@ describe('AgentPage', () => {
     })
   })
 
-  it('shows an error banner when the stream reports an error event', async () => {
+  it('resends the whole conversation, including the prior exchange, on a second turn', async () => {
+    const firstSse = 'event: token\ndata: {"text":"You hold AAPL."}\n\nevent: done\ndata: {}\n\n'
+    const secondSse = 'event: token\ndata: {"text":"Selling would reduce it."}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock
+      .mockResolvedValueOnce(mockStreamingResponse(firstSse))
+      .mockResolvedValueOnce(mockStreamingResponse(secondSse))
+
+    render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), {
+      target: { value: 'What do I hold?' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('You hold AAPL.')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), {
+      target: { value: 'What if I sold it?' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('Selling would reduce it.')).toBeInTheDocument())
+
+    const [, secondInit] = apiFetchMock.mock.calls[1] as [string, RequestInit]
+    expect(JSON.parse(secondInit.body as string)).toEqual({
+      messages: [
+        { role: 'user', content: 'What do I hold?' },
+        { role: 'assistant', content: 'You hold AAPL.' },
+        { role: 'user', content: 'What if I sold it?' },
+      ],
+    })
+  })
+
+  it('shows an error banner with an alert role when the stream reports an error event', async () => {
     const sse = 'event: error\ndata: {"message":"The assistant hit an unexpected error."}\n\n'
     apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
 
@@ -113,7 +141,19 @@ describe('AgentPage', () => {
     fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
-    await waitFor(() => expect(screen.getByText('The assistant hit an unexpected error.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('The assistant hit an unexpected error.'))
+  })
+
+  it('falls back to a generic message when an error event carries an empty message string', async () => {
+    const sse = 'event: error\ndata: {"message":""}\n\n'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('The assistant hit an error.'))
   })
 
   it('shows an error banner when the backend response is not ok', async () => {
