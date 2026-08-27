@@ -19,6 +19,19 @@ differently:
 
 `/` (Overview) shows both portfolios' totals side by side.
 
+- **Ask AI** (`/agent`) — a chat page for natural-language questions about
+  the portfolio ("where am I overweight?"). Posts the whole running
+  conversation to the backend's `POST /agent/ask` each turn (nothing is
+  persisted here — no server-side session, matching this app's pattern of
+  no server-side data-fetching layer) and streams the reply back as
+  Server-Sent Events, parsed by hand via `res.body.getReader()`
+  (`lib/parseSSEFrame.ts`) rather than the browser's `EventSource`, which
+  can't send the `Authorization: Bearer` header `apiFetch` attaches to
+  every other backend call. Each assistant reply shows which backend
+  tools informed it (a small "Used: get_holdings" badge per message) —
+  see the backend's `PROJECT.md` for how those tools and the MCP server
+  behind them are structured.
+
 ## Architecture
 
 ```
