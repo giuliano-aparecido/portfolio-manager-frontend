@@ -22,6 +22,7 @@ export default function AgentPage() {
   const [error, setError] = useState('')
   const abortControllerRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     // Abandon an in-flight stream on navigation away — otherwise the read
@@ -137,9 +138,35 @@ export default function AgentPage() {
     }
   }
 
+  function newChat() {
+    // Abandon an in-flight stream (if any) before dropping the transcript,
+    // so its read loop stops calling setState on a conversation that's
+    // gone — same reason the unmount effect aborts.
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setMessages([])
+    setInput('')
+    setError('')
+    setIsSending(false)
+    // The button unmounts itself once messages is empty, so focus would
+    // otherwise fall to <body>.
+    inputRef.current?.focus()
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Ask AI</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Ask AI</h1>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={newChat}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700"
+          >
+            New chat
+          </button>
+        )}
+      </div>
 
       {error && (
         <div role="alert" className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
@@ -195,6 +222,7 @@ export default function AgentPage() {
         className="flex gap-2"
       >
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about your portfolio..."
