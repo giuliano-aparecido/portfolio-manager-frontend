@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AgentPage from './page'
 
 vi.mock('react-markdown', () => ({
@@ -230,6 +230,95 @@ describe('AgentPage', () => {
     // this awaits a tick so any resulting console warning/unhandled
     // rejection has a chance to surface before the assertion below.
     await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
+
+    abortSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('shows no "New chat" button until there is a conversation', () => {
+    render(<AgentPage />)
+    expect(screen.queryByRole('button', { name: /new chat/i })).not.toBeInTheDocument()
+  })
+
+  it('"New chat" clears the transcript and starts the next turn from an empty history', async () => {
+    const firstSse = 'event: token\ndata: {"text":"You hold AAPL."}\n\nevent: done\ndata: {}\n\n'
+    const secondSse = 'event: token\ndata: {"text":"Fresh answer."}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock
+      .mockResolvedValueOnce(mockStreamingResponse(firstSse))
+      .mockResolvedValueOnce(mockStreamingResponse(secondSse))
+
+    render(<AgentPage />)
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'What do I hold?' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('You hold AAPL.')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /new chat/i }))
+
+    expect(screen.queryByText('What do I hold?')).not.toBeInTheDocument()
+    expect(screen.queryByText('You hold AAPL.')).not.toBeInTheDocument()
+    expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /new chat/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/ask about your portfolio/i)).toHaveFocus()
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'New question?' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('Fresh answer.')).toBeInTheDocument())
+
+    const [, secondInit] = apiFetchMock.mock.calls[1] as [string, RequestInit]
+    expect(JSON.parse(secondInit.body as string)).toEqual({
+      messages: [{ role: 'user', content: 'New question?' }],
+    })
+  })
+
+  it('"New chat" aborts an in-flight stream and unwinds it without an error banner', async () => {
+    const abortSpy = vi.spyOn(AbortController.prototype, 'abort')
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    // First chunk arrives, then the reader hangs until the request's abort
+    // signal fires — mirroring how a real fetch body rejects on abort.
+    const encoder = new TextEncoder()
+    apiFetchMock.mockImplementation((_path: string, init: RequestInit) => {
+      let sent = false
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        body: {
+          getReader: () => ({
+            read: () => {
+              if (!sent) {
+                sent = true
+                return Promise.resolve({
+                  done: false,
+                  value: encoder.encode('event: token\ndata: {"text":"thinking"}\n\n'),
+                })
+              }
+              return new Promise((_resolve, reject) => {
+                init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+              })
+            },
+            releaseLock: () => {},
+          }),
+        },
+      })
+    })
+
+    render(<AgentPage />)
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    await waitFor(() => expect(screen.getByText('thinking')).toBeInTheDocument())
+
+    abortSpy.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: /new chat/i }))
+
+    expect(abortSpy).toHaveBeenCalled()
+    // Let the aborted read() reject and send()'s catch/finally unwind.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument() // not "Sending…"
     expect(consoleErrorSpy).not.toHaveBeenCalled()
 
     abortSpy.mockRestore()
