@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
 import { fmt, gainClass } from '@/lib/format'
-import InvestmentForm from '@/components/InvestmentForm'
+import InvestmentForm, { type ExistingTicker } from '@/components/InvestmentForm'
 
 // recharts pulls in a sizeable bundle — load it only in the browser, only
 // once this page actually renders the chart, instead of in every page's
@@ -43,6 +44,9 @@ interface PriceErrorEntry {
   error: string
 }
 
+// Same shape the backend returns from GET /portfolio/tickers.
+type RegisteredTicker = ExistingTicker
+
 interface PortfolioRollup {
   openTickers: OpenTickerRollup[]
   closedTickers: ClosedTickerRollup[]
@@ -60,7 +64,9 @@ type SortDir = 'asc' | 'desc'
 
 export default function SecuritiesPage() {
   const { status } = useSession()
+  const router = useRouter()
   const [data, setData] = useState<PortfolioRollup | null>(null)
+  const [registeredTickers, setRegisteredTickers] = useState<RegisteredTicker[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [showAddInvestment, setShowAddInvestment] = useState(false)
@@ -97,13 +103,27 @@ export default function SecuritiesPage() {
     setIsLoading(true)
     setError('')
     try {
-      const res = await apiFetch(`/portfolio-rollup${forceRefresh ? '?refresh=true' : ''}`)
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(body.error || `Request failed: ${res.status}`)
+      const rollupRes = await apiFetch(`/portfolio-rollup${forceRefresh ? '?refresh=true' : ''}`)
+      const body = await rollupRes.json().catch(() => ({}))
+      if (!rollupRes.ok) {
+        throw new Error(body.error || `Request failed: ${rollupRes.status}`)
       }
       setData(body)
       setLastUpdated(new Date())
+
+      // The rollup only lists tickers that have transactions; /portfolio/tickers
+      // lists every registered investment, so a freshly-added one with no
+      // transactions yet is still shown (and clickable) below. Secondary
+      // data — its own try/catch so a failure (even a network-level
+      // rejection) can't blank the page the rollup already populated.
+      try {
+        const tickersRes = await apiFetch('/portfolio/tickers')
+        if (tickersRes.ok) {
+          setRegisteredTickers(await tickersRes.json().catch(() => []))
+        }
+      } catch (tickersErr) {
+        console.error('Registered-tickers load error:', tickersErr)
+      }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Failed to load portfolio'
       console.error('Portfolio load error:', errorMsg)
@@ -113,9 +133,11 @@ export default function SecuritiesPage() {
     }
   }
 
-  function handleCreated() {
+  function handleCreated(ticker: string) {
     setShowAddInvestment(false)
-    load(false)
+    // Go straight to the new investment so its first transaction can be
+    // added — it won't appear in the tables here until it has one.
+    router.push(`/ticker/${ticker}`)
   }
 
   function toggleSort(key: SortKey) {
@@ -256,6 +278,14 @@ export default function SecuritiesPage() {
     )
   }
 
+  const tickersWithTransactions = new Set([
+    ...(data?.openTickers ?? []).map((t) => t.ticker),
+    ...(data?.closedTickers ?? []).map((t) => t.ticker),
+  ])
+  const registeredWithoutTransactions = registeredTickers.filter(
+    (t) => !tickersWithTransactions.has(t.ticker),
+  )
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -376,7 +406,7 @@ export default function SecuritiesPage() {
                   {getSortedDailyTickers(data.openTickers.filter((t) => t.dailyChangePercent > 0), true).map((t) => (
                       <tr key={t.ticker} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-semibold text-blue-600">
-                          <Link href={`/ticker/${t.ticker}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          <Link href={`/ticker/${t.ticker}`} className="hover:underline">
                             {t.ticker}
                           </Link>
                         </td>
@@ -404,7 +434,7 @@ export default function SecuritiesPage() {
                   {getSortedDailyTickers(data.openTickers.filter((t) => t.dailyChangePercent < 0), false).map((t) => (
                       <tr key={t.ticker} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-semibold text-blue-600">
-                          <Link href={`/ticker/${t.ticker}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          <Link href={`/ticker/${t.ticker}`} className="hover:underline">
                             {t.ticker}
                           </Link>
                         </td>
@@ -440,7 +470,7 @@ export default function SecuritiesPage() {
                   return (
                     <tr key={t.ticker} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-semibold text-blue-600">
-                        <Link href={`/ticker/${t.ticker}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        <Link href={`/ticker/${t.ticker}`} className="hover:underline">
                           {t.ticker}
                         </Link>
                       </td>
@@ -466,6 +496,41 @@ export default function SecuritiesPage() {
             </table>
           </div>
 
+          {registeredWithoutTransactions.length > 0 && (
+            <div className="bg-white rounded-lg shadow overflow-x-auto mb-8">
+              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase border-b">
+                Registered — no transactions yet
+              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 border-b-2 border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Ticker</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Category</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Market</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Currency</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {registeredWithoutTransactions.map((t) => (
+                    <tr key={t.ticker} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-semibold text-blue-600">
+                        <Link href={`/ticker/${t.ticker}`} className="hover:underline">
+                          {t.ticker}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{t.category}</td>
+                      <td className="px-4 py-3 text-gray-600">{t.market}</td>
+                      <td className="px-4 py-3 text-gray-600">{t.nativeCurrency}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="px-4 py-2 text-xs text-gray-500 border-t">
+                Open one to add its first transaction.
+              </div>
+            </div>
+          )}
+
           {data.closedTickers.length > 0 && (
             <div className="bg-white rounded-lg shadow overflow-x-auto mb-8">
               <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase border-b">
@@ -482,7 +547,7 @@ export default function SecuritiesPage() {
                   {data.closedTickers.map((t) => (
                     <tr key={t.ticker} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-semibold text-blue-600">
-                        <Link href={`/ticker/${t.ticker}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        <Link href={`/ticker/${t.ticker}`} className="hover:underline">
                           {t.ticker}
                         </Link>
                       </td>

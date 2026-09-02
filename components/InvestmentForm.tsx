@@ -21,7 +21,10 @@ export default function InvestmentForm({
   onDeleted,
 }: {
   existing?: ExistingTicker
-  onSaved: () => void
+  // Receives the saved ticker symbol so a caller can navigate straight to
+  // its detail page — needed on create, where a brand-new investment has
+  // no transactions yet and so never shows up in the rollup-driven tables.
+  onSaved: (ticker: string) => void
   onCancel: () => void
   onDeleted?: () => void
 }) {
@@ -48,7 +51,7 @@ export default function InvestmentForm({
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Request failed: ${res.status}`)
       }
-      onSaved()
+      onSaved(ticker)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save investment')
     } finally {
