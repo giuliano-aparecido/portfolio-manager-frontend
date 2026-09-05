@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -8,6 +8,9 @@ import { apiFetch } from '@/lib/apiFetch'
 import { fmt, gainClass } from '@/lib/format'
 import InvestmentForm from '@/components/InvestmentForm'
 import TransactionForm, { ExistingTransaction } from '@/components/TransactionForm'
+import { useAuthGatedEffect } from '@/lib/useAuthGatedEffect'
+import { sortRows, useSortState } from '@/lib/sortRows'
+import SortHeader from '@/components/SortHeader'
 
 interface TransactionRow {
   id: number
@@ -55,7 +58,7 @@ interface TickerDetail {
 }
 
 type SortKey = 'date' | 'type' | 'quantity' | 'price' | 'fx'
-type SortDir = 'asc' | 'desc'
+type SalesSortKey = 'date' | 'qty' | 'proceeds' | 'costbasis' | 'gain'
 
 export default function TickerDetailPage() {
   const { status } = useSession()
@@ -69,22 +72,10 @@ export default function TickerDetailPage() {
   const [showEditInvestment, setShowEditInvestment] = useState(false)
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [editingTxn, setEditingTxn] = useState<TransactionRow | null>(null)
-  const [txnSortKey, setTxnSortKey] = useState<SortKey>('date')
-  const [txnSortDir, setTxnSortDir] = useState<SortDir>('desc')
-  const [salesSortKey, setSalesSortKey] = useState<'date' | 'qty' | 'proceeds' | 'costbasis' | 'gain'>('date')
-  const [salesSortDir, setSalesSortDir] = useState<SortDir>('desc')
+  const [txnSortKey, txnSortDir, toggleTxnSort] = useSortState<SortKey>('date', 'desc')
+  const [salesSortKey, salesSortDir, toggleSalesSort] = useSortState<SalesSortKey>('date', 'desc')
 
-  useEffect(() => {
-    // Middleware already blocks anonymous requests to this page server-side
-    // in production, but this avoids a wasted backend round trip during the
-    // brief moment useSession() takes to hydrate client-side (and defends
-    // against ever firing this call with no session at all). Skipped in
-    // development, where there's no sign-in step at all and the backend
-    // auto-provisions a fixed user regardless of session state.
-    if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, ticker])
+  useAuthGatedEffect(status, load, [ticker])
 
   async function load() {
     setIsLoading(true)
@@ -108,114 +99,6 @@ export default function TickerDetailPage() {
     setShowAddTransaction(false)
     setEditingTxn(null)
     load()
-  }
-
-  function toggleTxnSort(key: SortKey) {
-    if (txnSortKey === key) {
-      setTxnSortDir(txnSortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setTxnSortKey(key)
-      setTxnSortDir('asc')
-    }
-  }
-
-  function toggleSalesSort(key: 'date' | 'qty' | 'proceeds' | 'costbasis' | 'gain') {
-    if (salesSortKey === key) {
-      setSalesSortDir(salesSortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSalesSortKey(key)
-      setSalesSortDir('asc')
-    }
-  }
-
-  function getSortedTransactions(txns: TransactionRow[]) {
-    const sorted = [...txns]
-    sorted.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
-
-      switch (txnSortKey) {
-        case 'date':
-          aVal = a.date
-          bVal = b.date
-          break
-        case 'type':
-          aVal = a.type
-          bVal = b.type
-          break
-        case 'quantity':
-          aVal = a.quantity ?? 0
-          bVal = b.quantity ?? 0
-          break
-        case 'price':
-          aVal = a.pricePerShare ?? 0
-          bVal = b.pricePerShare ?? 0
-          break
-        case 'fx':
-          aVal = a.fxRateToCHF
-          bVal = b.fxRateToCHF
-          break
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return txnSortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-      return txnSortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-    })
-    return sorted
-  }
-
-  function getSortedSales(sales: RealizedGainRow[]) {
-    const sorted = [...sales]
-    sorted.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
-
-      switch (salesSortKey) {
-        case 'date':
-          aVal = a.date
-          bVal = b.date
-          break
-        case 'qty':
-          aVal = a.qtySold
-          bVal = b.qtySold
-          break
-        case 'proceeds':
-          aVal = a.proceedsNative
-          bVal = b.proceedsNative
-          break
-        case 'costbasis':
-          aVal = a.costBasisNative
-          bVal = b.costBasisNative
-          break
-        case 'gain':
-          aVal = a.gainCHF
-          bVal = b.gainCHF
-          break
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return salesSortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-      return salesSortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-    })
-    return sorted
-  }
-
-  function SortHeader({ label, sortKeyVal, isSales }: { label: string; sortKeyVal: SortKey | 'date' | 'qty' | 'proceeds' | 'costbasis' | 'gain'; isSales?: boolean }) {
-    const isActive = isSales ? (salesSortKey === sortKeyVal) : (txnSortKey === sortKeyVal)
-    const dir = isSales ? salesSortDir : txnSortDir
-    const arrow = isActive ? (dir === 'asc' ? ' ↑' : ' ↓') : ''
-    const handleClick = isSales ? () => toggleSalesSort(sortKeyVal as any) : () => toggleTxnSort(sortKeyVal as any)
-    return (
-      <button
-        onClick={handleClick}
-        className="text-left font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer"
-      >
-        {label}
-        {arrow}
-      </button>
-    )
   }
 
   async function handleDeleteTransaction(txn: TransactionRow) {
@@ -257,6 +140,21 @@ export default function TickerDetailPage() {
   if (!data) return null
 
   const hasPosition = data.currentShares > 1e-9
+
+  const sortedTransactions = sortRows(data.transactions, txnSortKey, txnSortDir, {
+    date: (t: TransactionRow) => t.date,
+    type: (t: TransactionRow) => t.type,
+    quantity: (t: TransactionRow) => t.quantity ?? 0,
+    price: (t: TransactionRow) => t.pricePerShare ?? 0,
+    fx: (t: TransactionRow) => t.fxRateToCHF,
+  })
+  const sortedSales = sortRows(data.realizedGains, salesSortKey, salesSortDir, {
+    date: (r: RealizedGainRow) => r.date,
+    qty: (r: RealizedGainRow) => r.qtySold,
+    proceeds: (r: RealizedGainRow) => r.proceedsNative,
+    costbasis: (r: RealizedGainRow) => r.costBasisNative,
+    gain: (r: RealizedGainRow) => r.gainCHF,
+  })
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -408,18 +306,18 @@ export default function TickerDetailPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 border-b-2 border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyVal="date" /></th>
-              <th className="px-4 py-3 text-left"><SortHeader label="Type" sortKeyVal="type" /></th>
-              <th className="px-4 py-3 text-right"><SortHeader label="Quantity" sortKeyVal="quantity" /></th>
-              <th className="px-4 py-3 text-right"><SortHeader label="Price/share" sortKeyVal="price" /></th>
+              <th className="px-4 py-3 text-left"><SortHeader label="Date" active={txnSortKey === 'date'} dir={txnSortDir} onClick={() => toggleTxnSort('date')} /></th>
+              <th className="px-4 py-3 text-left"><SortHeader label="Type" active={txnSortKey === 'type'} dir={txnSortDir} onClick={() => toggleTxnSort('type')} /></th>
+              <th className="px-4 py-3 text-right"><SortHeader label="Quantity" active={txnSortKey === 'quantity'} dir={txnSortDir} onClick={() => toggleTxnSort('quantity')} align="right" /></th>
+              <th className="px-4 py-3 text-right"><SortHeader label="Price/share" active={txnSortKey === 'price'} dir={txnSortDir} onClick={() => toggleTxnSort('price')} align="right" /></th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Total Amount</th>
-              <th className="px-4 py-3 text-right"><SortHeader label="FX to CHF" sortKeyVal="fx" /></th>
+              <th className="px-4 py-3 text-right"><SortHeader label="FX to CHF" active={txnSortKey === 'fx'} dir={txnSortDir} onClick={() => toggleTxnSort('fx')} align="right" /></th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">Note</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {getSortedTransactions(data.transactions).map((t) => {
+            {sortedTransactions.map((t) => {
               const totalAmount = t.quantity != null && t.pricePerShare != null ? t.quantity * t.pricePerShare : t.cashAmount
               return (
               <tr key={t.id} className="hover:bg-gray-50">
@@ -464,16 +362,16 @@ export default function TickerDetailPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-100 border-b-2 border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyVal="date" isSales /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Qty sold" sortKeyVal="qty" isSales /></th>
+                <th className="px-4 py-3 text-left"><SortHeader label="Date" active={salesSortKey === 'date'} dir={salesSortDir} onClick={() => toggleSalesSort('date')} /></th>
+                <th className="px-4 py-3 text-right"><SortHeader label="Qty sold" active={salesSortKey === 'qty'} dir={salesSortDir} onClick={() => toggleSalesSort('qty')} align="right" /></th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-900">Sell Price</th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Proceeds" sortKeyVal="proceeds" isSales /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Cost basis" sortKeyVal="costbasis" isSales /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Gain" sortKeyVal="gain" isSales /></th>
+                <th className="px-4 py-3 text-right"><SortHeader label="Proceeds" active={salesSortKey === 'proceeds'} dir={salesSortDir} onClick={() => toggleSalesSort('proceeds')} align="right" /></th>
+                <th className="px-4 py-3 text-right"><SortHeader label="Cost basis" active={salesSortKey === 'costbasis'} dir={salesSortDir} onClick={() => toggleSalesSort('costbasis')} align="right" /></th>
+                <th className="px-4 py-3 text-right"><SortHeader label="Gain" active={salesSortKey === 'gain'} dir={salesSortDir} onClick={() => toggleSalesSort('gain')} align="right" /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {getSortedSales(data.realizedGains).map((r) => (
+              {sortedSales.map((r) => (
                 <tr key={`${r.date}-${r.qtySold}-${r.proceedsNative}-${r.costBasisNative}`}>
                   <td className="px-4 py-3 text-gray-900">{r.date.slice(0, 10)}</td>
                   <td className="px-4 py-3 text-right font-mono text-gray-900">{r.qtySold.toFixed(4)}</td>

@@ -51,6 +51,14 @@ export default function AgentPage() {
     updateLastMessage((last) => ({ ...last, toolCalls: last.toolCalls ? [...last.toolCalls, name] : [name] }))
   }
 
+  // No branch for 'tool_result' or 'done' - both are intentionally inert
+  // here. 'tool_result' is the raw tool output for the backend's own use;
+  // the UI only ever shows that a tool was called (via 'tool_call'
+  // above), not its result, which instead reaches the user through the
+  // model's own subsequent 'token' text. 'done' is redundant with the
+  // stream's own end-of-body signal, which readStream already detects
+  // via reader.read()'s `done` flag - there's nothing left to do once
+  // that fires.
   function handleFrame(parsed: SSEFrame) {
     if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
       appendToLastAssistant(parsed.data.text)

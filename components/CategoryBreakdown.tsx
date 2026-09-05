@@ -15,7 +15,6 @@ const COLORS = [
 ]
 
 export default function CategoryBreakdown({ tickers }: { tickers: Ticker[] }) {
-  // Aggregate by category
   const categoryData = tickers.reduce(
     (acc, ticker) => {
       const existing = acc.find((item) => item.name === ticker.category)
@@ -29,7 +28,10 @@ export default function CategoryBreakdown({ tickers }: { tickers: Ticker[] }) {
     [] as Array<{ name: string; value: number }>
   )
 
-  // Sort by value descending for consistency
+  // The pie's <Cell> and the legend's swatch below both key their fill
+  // color off COLORS[index % COLORS.length] against this same array — if
+  // the pie and legend ever sorted it independently, a category's pie
+  // slice and its legend swatch could silently end up different colors.
   categoryData.sort((a, b) => b.value - a.value)
 
   const totalValue = categoryData.reduce((sum, item) => sum + item.value, 0)
