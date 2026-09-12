@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
 import { fmt, gainClass } from '@/lib/format'
 import type { PassiveRollup, PassiveInvestmentRollupRow } from '@/lib/passive/types'
 import PassiveInvestmentForm, { ExistingPassiveInvestment } from '@/components/PassiveInvestmentForm'
+import { useAuthGatedEffect } from '@/lib/useAuthGatedEffect'
 
 export default function PassiveInvestmentPage() {
   const { status } = useSession()
@@ -16,16 +17,7 @@ export default function PassiveInvestmentPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingRow, setEditingRow] = useState<PassiveInvestmentRollupRow | null>(null)
 
-  useEffect(() => {
-    // Middleware already blocks anonymous requests to this page server-side
-    // in production, but this avoids a wasted backend round trip during the
-    // brief moment useSession() takes to hydrate client-side (and defends
-    // against ever firing this call with no session at all). Skipped in
-    // development, where there's no sign-in step at all and the backend
-    // auto-provisions a fixed user regardless of session state.
-    if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return
-    load(false)
-  }, [status])
+  useAuthGatedEffect(status, () => load(false))
 
   async function load(forceRefresh: boolean) {
     setIsLoading(true)

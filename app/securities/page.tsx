@@ -8,6 +8,9 @@ import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
 import { fmt, gainClass } from '@/lib/format'
 import InvestmentForm, { type ExistingTicker } from '@/components/InvestmentForm'
+import { useAuthGatedEffect, isDevOrAuthenticated } from '@/lib/useAuthGatedEffect'
+import { sortRows, useSortState } from '@/lib/sortRows'
+import SortHeader from '@/components/SortHeader'
 
 // recharts pulls in a sizeable bundle — load it only in the browser, only
 // once this page actually renders the chart, instead of in every page's
@@ -60,7 +63,6 @@ interface PortfolioRollup {
 
 type SortKey = 'ticker' | 'shares' | 'costBasis' | 'price' | 'marketValue' | 'unrealizedGL' | 'portfolio' | 'unrealizedGLPercent' | 'unrealizedGLPercentCHF'
 type DailyTableSortKey = 'ticker' | 'dailyChangePercent'
-type SortDir = 'asc' | 'desc'
 
 export default function SecuritiesPage() {
   const { status } = useSession()
@@ -70,34 +72,20 @@ export default function SecuritiesPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [showAddInvestment, setShowAddInvestment] = useState(false)
-  const [sortKey, setSortKey] = useState<SortKey>('unrealizedGLPercentCHF')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [gainersSort, setGainersSort] = useState<DailyTableSortKey>('dailyChangePercent')
-  const [gainersDir, setGainersDir] = useState<SortDir>('desc')
-  const [losersSort, setLosersSort] = useState<DailyTableSortKey>('dailyChangePercent')
-  const [losersDir, setLosersDir] = useState<SortDir>('asc')
+  const [sortKey, sortDir, toggleSort] = useSortState<SortKey>('unrealizedGLPercentCHF', 'desc')
+  const [gainersSort, gainersDir, toggleGainersSort] = useSortState<DailyTableSortKey>('dailyChangePercent', 'desc')
+  const [losersSort, losersDir, toggleLosersSort] = useSortState<DailyTableSortKey>('dailyChangePercent', 'asc')
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(180) // 3 minutes in seconds
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [showRefreshSettings, setShowRefreshSettings] = useState(false)
 
-  const isDevOrAuthenticated = process.env.NODE_ENV === 'development' || status === 'authenticated'
+  useAuthGatedEffect(status, () => load(false))
 
   useEffect(() => {
-    // Middleware already blocks anonymous requests to this page server-side
-    // in production, but this avoids a wasted backend round trip during the
-    // brief moment useSession() takes to hydrate client-side (and defends
-    // against ever firing this call with no session at all). Skipped in
-    // development, where there's no sign-in step at all and the backend
-    // auto-provisions a fixed user regardless of session state.
-    if (!isDevOrAuthenticated) return
-    load(false)
-  }, [isDevOrAuthenticated])
-
-  useEffect(() => {
-    if (!isDevOrAuthenticated || autoRefreshInterval <= 0) return
+    if (!isDevOrAuthenticated(status) || autoRefreshInterval <= 0) return
     const interval = setInterval(() => load(false), autoRefreshInterval * 1000)
     return () => clearInterval(interval)
-  }, [isDevOrAuthenticated, autoRefreshInterval])
+  }, [status, autoRefreshInterval])
 
   async function load(forceRefresh: boolean) {
     setIsLoading(true)
@@ -140,142 +128,27 @@ export default function SecuritiesPage() {
     router.push(`/ticker/${ticker}`)
   }
 
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }
-
   function getSortedTickers(tickers: OpenTickerRollup[], total: number) {
-    const sorted = [...tickers]
-    sorted.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
-
-      switch (sortKey) {
-        case 'ticker':
-          aVal = a.ticker
-          bVal = b.ticker
-          break
-        case 'shares':
-          aVal = a.currentShares
-          bVal = b.currentShares
-          break
-        case 'costBasis':
-          aVal = a.costBasisNative
-          bVal = b.costBasisNative
-          break
-        case 'price':
-          aVal = a.currentPriceNative
-          bVal = b.currentPriceNative
-          break
-        case 'marketValue':
-          aVal = a.marketValueNative
-          bVal = b.marketValueNative
-          break
-        case 'unrealizedGL':
-          aVal = a.unrealizedGainNative
-          bVal = b.unrealizedGainNative
-          break
-        case 'portfolio':
-          aVal = a.marketValueCHF / total
-          bVal = b.marketValueCHF / total
-          break
-        case 'unrealizedGLPercent':
-          aVal = a.costBasisNative > 0 ? (a.unrealizedGainNative / a.costBasisNative) * 100 : 0
-          bVal = b.costBasisNative > 0 ? (b.unrealizedGainNative / b.costBasisNative) * 100 : 0
-          break
-        case 'unrealizedGLPercentCHF':
-          aVal = a.costBasisCHF > 0 ? (a.unrealizedGainCHF / a.costBasisCHF) * 100 : 0
-          bVal = b.costBasisCHF > 0 ? (b.unrealizedGainCHF / b.costBasisCHF) * 100 : 0
-          break
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-      return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
+    return sortRows(tickers, sortKey, sortDir, {
+      ticker: (t) => t.ticker,
+      shares: (t) => t.currentShares,
+      costBasis: (t) => t.costBasisNative,
+      price: (t) => t.currentPriceNative,
+      marketValue: (t) => t.marketValueNative,
+      unrealizedGL: (t) => t.unrealizedGainNative,
+      portfolio: (t) => t.marketValueCHF / total,
+      unrealizedGLPercent: (t) => (t.costBasisNative > 0 ? (t.unrealizedGainNative / t.costBasisNative) * 100 : 0),
+      unrealizedGLPercentCHF: (t) => (t.costBasisCHF > 0 ? (t.unrealizedGainCHF / t.costBasisCHF) * 100 : 0),
     })
-    return sorted
-  }
-
-  function toggleGainersSort(key: DailyTableSortKey) {
-    if (gainersSort === key) {
-      setGainersDir(gainersDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setGainersSort(key)
-      setGainersDir('desc')
-    }
-  }
-
-  function toggleLosersSort(key: DailyTableSortKey) {
-    if (losersSort === key) {
-      setLosersDir(losersDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setLosersSort(key)
-      setLosersDir('asc')
-    }
   }
 
   function getSortedDailyTickers(tickers: OpenTickerRollup[], isGainers: boolean) {
-    const sorted = [...tickers]
-    const sortKeyVal = isGainers ? gainersSort : losersSort
-    const sortDirVal = isGainers ? gainersDir : losersDir
-
-    sorted.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
-
-      switch (sortKeyVal) {
-        case 'ticker':
-          aVal = a.ticker
-          bVal = b.ticker
-          break
-        case 'dailyChangePercent':
-          aVal = a.dailyChangePercent
-          bVal = b.dailyChangePercent
-          break
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortDirVal === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-      return sortDirVal === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
+    const key = isGainers ? gainersSort : losersSort
+    const dir = isGainers ? gainersDir : losersDir
+    return sortRows(tickers, key, dir, {
+      ticker: (t) => t.ticker,
+      dailyChangePercent: (t) => t.dailyChangePercent,
     })
-    return sorted
-  }
-
-  function SortHeader({ label, sortKeyVal }: { label: string; sortKeyVal: SortKey }) {
-    const isActive = sortKey === sortKeyVal
-    const arrow = isActive ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
-    return (
-      <button
-        onClick={() => toggleSort(sortKeyVal)}
-        className="text-left font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer"
-      >
-        {label}
-        {arrow}
-      </button>
-    )
-  }
-
-  function DailySortHeader({ label, sortKeyVal, isGainers }: { label: string; sortKeyVal: DailyTableSortKey; isGainers: boolean }) {
-    const sortKeyVal_ = isGainers ? gainersSort : losersSort
-    const sortDirVal = isGainers ? gainersDir : losersDir
-    const isActive = sortKeyVal_ === sortKeyVal
-    const arrow = isActive ? (sortDirVal === 'asc' ? ' ↑' : ' ↓') : ''
-    return (
-      <button
-        onClick={() => (isGainers ? toggleGainersSort(sortKeyVal) : toggleLosersSort(sortKeyVal))}
-        className="text-right font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer"
-      >
-        {label}
-        {arrow}
-      </button>
-    )
   }
 
   const tickersWithTransactions = new Set([
@@ -398,8 +271,8 @@ export default function SecuritiesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 border-b-2 border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left"><button onClick={() => toggleGainersSort('ticker')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer">{gainersSort === 'ticker' ? (gainersDir === 'asc' ? 'Ticker ↑' : 'Ticker ↓') : 'Ticker'}</button></th>
-                    <th className="px-4 py-3"><button onClick={() => toggleGainersSort('dailyChangePercent')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer w-full text-right">{gainersSort === 'dailyChangePercent' ? (gainersDir === 'asc' ? 'Price Change % ↑' : 'Price Change % ↓') : 'Price Change %'}</button></th>
+                    <th className="px-4 py-3 text-left"><SortHeader label="Ticker" active={gainersSort === 'ticker'} dir={gainersDir} onClick={() => toggleGainersSort('ticker', 'desc')} /></th>
+                    <th className="px-4 py-3 text-right"><SortHeader label="Price Change %" active={gainersSort === 'dailyChangePercent'} dir={gainersDir} onClick={() => toggleGainersSort('dailyChangePercent', 'desc')} align="right" /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -426,8 +299,8 @@ export default function SecuritiesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 border-b-2 border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left"><button onClick={() => toggleLosersSort('ticker')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer">{losersSort === 'ticker' ? (losersDir === 'asc' ? 'Ticker ↑' : 'Ticker ↓') : 'Ticker'}</button></th>
-                    <th className="px-4 py-3"><button onClick={() => toggleLosersSort('dailyChangePercent')} className="font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer w-full text-right">{losersSort === 'dailyChangePercent' ? (losersDir === 'asc' ? 'Price Change % ↑' : 'Price Change % ↓') : 'Price Change %'}</button></th>
+                    <th className="px-4 py-3 text-left"><SortHeader label="Ticker" active={losersSort === 'ticker'} dir={losersDir} onClick={() => toggleLosersSort('ticker', 'asc')} /></th>
+                    <th className="px-4 py-3 text-right"><SortHeader label="Price Change %" active={losersSort === 'dailyChangePercent'} dir={losersDir} onClick={() => toggleLosersSort('dailyChangePercent', 'asc')} align="right" /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -452,14 +325,14 @@ export default function SecuritiesPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-100 border-b-2 border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left"><SortHeader label="Ticker" sortKeyVal="ticker" /></th>
+                  <th className="px-4 py-3 text-left"><SortHeader label="Ticker" active={sortKey === 'ticker'} dir={sortDir} onClick={() => toggleSort('ticker')} /></th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-900">Category</th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="Shares" sortKeyVal="shares" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="Cost Basis (native)" sortKeyVal="costBasis" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="Market Value (CHF)" sortKeyVal="marketValue" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="Unrealized G/L (CHF)" sortKeyVal="unrealizedGL" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="G/L % (CHF)" sortKeyVal="unrealizedGLPercentCHF" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="Portfolio %" sortKeyVal="portfolio" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Shares" active={sortKey === 'shares'} dir={sortDir} onClick={() => toggleSort('shares')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Cost Basis (native)" active={sortKey === 'costBasis'} dir={sortDir} onClick={() => toggleSort('costBasis')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Market Value (CHF)" active={sortKey === 'marketValue'} dir={sortDir} onClick={() => toggleSort('marketValue')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Unrealized G/L (CHF)" active={sortKey === 'unrealizedGL'} dir={sortDir} onClick={() => toggleSort('unrealizedGL')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="G/L % (CHF)" active={sortKey === 'unrealizedGLPercentCHF'} dir={sortDir} onClick={() => toggleSort('unrealizedGLPercentCHF')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Portfolio %" active={sortKey === 'portfolio'} dir={sortDir} onClick={() => toggleSort('portfolio')} align="right" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,9 +10,11 @@ import type { PassiveInvestmentDetail, PassiveTransactionRow } from '@/lib/passi
 import PassiveInvestmentForm from '@/components/PassiveInvestmentForm'
 import PassiveTransactionForm from '@/components/PassiveTransactionForm'
 import RecurringDepositForm from '@/components/RecurringDepositForm'
+import { useAuthGatedEffect } from '@/lib/useAuthGatedEffect'
+import { sortRows, useSortState } from '@/lib/sortRows'
+import SortHeader from '@/components/SortHeader'
 
 type SortKey = 'date' | 'type' | 'amount'
-type SortDir = 'asc' | 'desc'
 
 export default function PassiveInvestmentDetailPage() {
   const { status } = useSession()
@@ -27,20 +29,9 @@ export default function PassiveInvestmentDetailPage() {
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [editingTxn, setEditingTxn] = useState<PassiveTransactionRow | null>(null)
   const [showRecurringForm, setShowRecurringForm] = useState(false)
-  const [txnSortKey, setTxnSortKey] = useState<SortKey>('date')
-  const [txnSortDir, setTxnSortDir] = useState<SortDir>('desc')
+  const [txnSortKey, txnSortDir, toggleTxnSort] = useSortState<SortKey>('date', 'desc')
 
-  useEffect(() => {
-    // Middleware already blocks anonymous requests to this page server-side
-    // in production, but this avoids a wasted backend round trip during the
-    // brief moment useSession() takes to hydrate client-side (and defends
-    // against ever firing this call with no session at all). Skipped in
-    // development, where there's no sign-in step at all and the backend
-    // auto-provisions a fixed user regardless of session state.
-    if (process.env.NODE_ENV !== 'development' && status !== 'authenticated') return
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, id])
+  useAuthGatedEffect(status, load, [id])
 
   async function load() {
     setIsLoading(true)
@@ -67,57 +58,6 @@ export default function PassiveInvestmentDetailPage() {
     load()
   }
 
-  function toggleTxnSort(key: SortKey) {
-    if (txnSortKey === key) {
-      setTxnSortDir(txnSortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setTxnSortKey(key)
-      setTxnSortDir('asc')
-    }
-  }
-
-  function getSortedTransactions(txns: PassiveTransactionRow[]) {
-    const sorted = [...txns]
-    sorted.sort((a, b) => {
-      let aVal: number | string = 0
-      let bVal: number | string = 0
-
-      switch (txnSortKey) {
-        case 'date':
-          aVal = a.date
-          bVal = b.date
-          break
-        case 'type':
-          aVal = a.type
-          bVal = b.type
-          break
-        case 'amount':
-          aVal = a.amountNative
-          bVal = b.amountNative
-          break
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return txnSortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      }
-      return txnSortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-    })
-    return sorted
-  }
-
-  function SortHeader({ label, sortKeyVal }: { label: string; sortKeyVal: SortKey }) {
-    const isActive = txnSortKey === sortKeyVal
-    const arrow = isActive ? (txnSortDir === 'asc' ? ' ↑' : ' ↓') : ''
-    return (
-      <button
-        onClick={() => toggleTxnSort(sortKeyVal)}
-        className="text-left font-semibold hover:bg-gray-200 px-1 rounded cursor-pointer"
-      >
-        {label}
-        {arrow}
-      </button>
-    )
-  }
 
   async function handleDeleteTransaction(txn: PassiveTransactionRow) {
     if (!confirm(`Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`)) return
@@ -170,6 +110,12 @@ export default function PassiveInvestmentDetailPage() {
   }
 
   if (!data) return null
+
+  const sortedTransactions = sortRows(data.transactions, txnSortKey, txnSortDir, {
+    date: (t: PassiveTransactionRow) => t.date,
+    type: (t: PassiveTransactionRow) => t.type,
+    amount: (t: PassiveTransactionRow) => t.amountNative,
+  })
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -356,15 +302,15 @@ export default function PassiveInvestmentDetailPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 border-b-2 border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyVal="date" /></th>
-              <th className="px-4 py-3 text-left"><SortHeader label="Type" sortKeyVal="type" /></th>
-              <th className="px-4 py-3 text-right"><SortHeader label="Amount" sortKeyVal="amount" /></th>
+              <th className="px-4 py-3 text-left"><SortHeader label="Date" active={txnSortKey === 'date'} dir={txnSortDir} onClick={() => toggleTxnSort('date')} /></th>
+              <th className="px-4 py-3 text-left"><SortHeader label="Type" active={txnSortKey === 'type'} dir={txnSortDir} onClick={() => toggleTxnSort('type')} /></th>
+              <th className="px-4 py-3 text-right"><SortHeader label="Amount" active={txnSortKey === 'amount'} dir={txnSortDir} onClick={() => toggleTxnSort('amount')} align="right" /></th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900">Note</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {getSortedTransactions(data.transactions).map((t) => (
+            {sortedTransactions.map((t) => (
               <tr key={t.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-900">{t.date.slice(0, 10)}</td>
                 <td className="px-4 py-3 text-gray-900">{t.type}</td>

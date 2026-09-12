@@ -42,9 +42,20 @@ export default function PassiveInvestmentForm({
     setIsSubmitting(true)
     try {
       const url = isEdit ? `/passive-investments/${existing!.id}` : '/passive-investments'
+      // Number('') is 0, not NaN, so the empty-string check must come first;
+      // Number.isFinite guards a leftover invalid intermediate value (e.g. a
+      // lone "-" or ".") from serializing as NaN -> null indistinguishably
+      // from an intentional blank field.
+      const parsedGainLossPct = gainLossPct === '' ? null : Number(gainLossPct)
       const res = await apiFetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        body: JSON.stringify({ name, type, currency, notes, gainLossPct }),
+        body: JSON.stringify({
+          name,
+          type,
+          currency,
+          notes,
+          gainLossPct: Number.isFinite(parsedGainLossPct) ? parsedGainLossPct : null,
+        }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
