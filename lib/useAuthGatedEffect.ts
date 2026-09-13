@@ -14,6 +14,8 @@ export function useAuthGatedEffect(status: string, load: () => void, extraDeps: 
   useEffect(() => {
     if (!isDevOrAuthenticated(status)) return
     load()
+    // `load` is intentionally omitted: callers pass a new closure each render,
+    // and only status/extraDeps should re-trigger this effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, ...extraDeps])
 }

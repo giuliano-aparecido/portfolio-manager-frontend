@@ -51,14 +51,13 @@ export default function AgentPage() {
     updateLastMessage((last) => ({ ...last, toolCalls: last.toolCalls ? [...last.toolCalls, name] : [name] }))
   }
 
-  // No branch for 'tool_result' or 'done' - both are intentionally inert
-  // here. 'tool_result' is the raw tool output for the backend's own use;
-  // the UI only ever shows that a tool was called (via 'tool_call'
-  // above), not its result, which instead reaches the user through the
-  // model's own subsequent 'token' text. 'done' is redundant with the
-  // stream's own end-of-body signal, which readStream already detects
-  // via reader.read()'s `done` flag - there's nothing left to do once
-  // that fires.
+  // 'tool_result' and 'done' are intentionally inert here. 'tool_result' is
+  // the raw tool output for the backend's own use; the UI only ever shows
+  // that a tool was called (via 'tool_call' above), not its result, which
+  // instead reaches the user through the model's own subsequent 'token'
+  // text. 'done' is redundant with the stream's own end-of-body signal,
+  // which readStream already detects via reader.read()'s `done` flag -
+  // there's nothing left to do once that fires.
   function handleFrame(parsed: SSEFrame) {
     if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
       appendToLastAssistant(parsed.data.text)
@@ -67,6 +66,13 @@ export default function AgentPage() {
     } else if (parsed.event === 'error') {
       const message = parsed.data.message
       throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
+    } else if (parsed.event === 'tool_result' || parsed.event === 'done') {
+      // intentionally inert - see comment above
+    } else {
+      // parseSSEFrame casts the wire event name without validating it, so an
+      // event outside the known set (e.g. a newer backend contract) lands
+      // here silently otherwise - surface it instead of dropping it unseen.
+      console.warn('Unrecognized SSE event:', parsed.event)
     }
   }
 

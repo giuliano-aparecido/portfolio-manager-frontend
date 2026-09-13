@@ -63,7 +63,7 @@ export default function CategoryBreakdown({ tickers }: { tickers: Ticker[] }) {
         <div className="flex-1">
           <div className="grid grid-cols-2 gap-4">
             {categoryData.map((item, index) => {
-              const percentage = ((item.value / totalValue) * 100).toFixed(1)
+              const percentage = totalValue > 0 ? ((item.value / totalValue) * 100).toFixed(1) : '0.0'
               return (
                 <div key={item.name} className="flex items-center gap-3">
                   <div
