@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
+import { CURRENCIES } from '@/lib/portfolio/validation'
 
 const MARKETS = ['NYSE', 'NASDAQ', 'SIX', 'LON', 'TSX', 'SGX', 'CRYPTO']
 const CATEGORIES = ['Stock', 'Stock Defensive', 'REITS', 'Gold', 'Crypto', 'Berkshire', 'IBM']
-const CURRENCIES = ['USD', 'CHF', 'GBP', 'CAD', 'SGD', 'EUR']
 
 export interface ExistingTicker {
   ticker: string

@@ -51,22 +51,31 @@ export default function AgentPage() {
     updateLastMessage((last) => ({ ...last, toolCalls: last.toolCalls ? [...last.toolCalls, name] : [name] }))
   }
 
-  // No branch for 'tool_result' or 'done' - both are intentionally inert
-  // here. 'tool_result' is the raw tool output for the backend's own use;
-  // the UI only ever shows that a tool was called (via 'tool_call'
-  // above), not its result, which instead reaches the user through the
-  // model's own subsequent 'token' text. 'done' is redundant with the
-  // stream's own end-of-body signal, which readStream already detects
-  // via reader.read()'s `done` flag - there's nothing left to do once
-  // that fires.
   function handleFrame(parsed: SSEFrame) {
-    if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
-      appendToLastAssistant(parsed.data.text)
-    } else if (parsed.event === 'tool_call' && typeof parsed.data.name === 'string') {
-      addToolCallToLastAssistant(parsed.data.name)
-    } else if (parsed.event === 'error') {
-      const message = parsed.data.message
-      throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
+    switch (parsed.event) {
+      case 'token':
+        if (typeof parsed.data.text === 'string') {
+          appendToLastAssistant(parsed.data.text)
+        } else {
+          console.warn('token frame missing string data.text:', parsed.data)
+        }
+        break
+      case 'tool_call':
+        if (typeof parsed.data.name === 'string') {
+          addToolCallToLastAssistant(parsed.data.name)
+        } else {
+          console.warn('tool_call frame missing string data.name:', parsed.data)
+        }
+        break
+      case 'error': {
+        const message = parsed.data.message
+        throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
+      }
+      case 'tool_result':
+      case 'done':
+        break
+      default:
+        console.warn('Unrecognized SSE event:', parsed.event)
     }
   }
 

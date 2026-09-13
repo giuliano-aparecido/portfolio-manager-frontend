@@ -339,7 +339,7 @@ export default function SecuritiesPage() {
                 {getSortedTickers(data.openTickers, data.totalMarketValueCHF).map((t) => {
                   const glPercent = t.costBasisNative > 0 ? (t.unrealizedGainNative / t.costBasisNative) * 100 : 0
                   const glPercentCHF = t.costBasisCHF > 0 ? (t.unrealizedGainCHF / t.costBasisCHF) * 100 : 0
-                  const portfolioPercent = (t.marketValueCHF / data.totalMarketValueCHF) * 100
+                  const portfolioPercent = data.totalMarketValueCHF > 0 ? (t.marketValueCHF / data.totalMarketValueCHF) * 100 : 0
                   return (
                     <tr key={t.ticker} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-semibold text-blue-600">
