@@ -59,20 +59,35 @@ export default function AgentPage() {
   // which readStream already detects via reader.read()'s `done` flag -
   // there's nothing left to do once that fires.
   function handleFrame(parsed: SSEFrame) {
-    if (parsed.event === 'token' && typeof parsed.data.text === 'string') {
-      appendToLastAssistant(parsed.data.text)
-    } else if (parsed.event === 'tool_call' && typeof parsed.data.name === 'string') {
-      addToolCallToLastAssistant(parsed.data.name)
-    } else if (parsed.event === 'error') {
-      const message = parsed.data.message
-      throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
-    } else if (parsed.event === 'tool_result' || parsed.event === 'done') {
-      // intentionally inert - see comment above
-    } else {
-      // parseSSEFrame casts the wire event name without validating it, so an
-      // event outside the known set (e.g. a newer backend contract) lands
-      // here silently otherwise - surface it instead of dropping it unseen.
-      console.warn('Unrecognized SSE event:', parsed.event)
+    switch (parsed.event) {
+      case 'token':
+        if (typeof parsed.data.text === 'string') {
+          appendToLastAssistant(parsed.data.text)
+        } else {
+          console.warn('token frame missing string data.text:', parsed.data)
+        }
+        break
+      case 'tool_call':
+        if (typeof parsed.data.name === 'string') {
+          addToolCallToLastAssistant(parsed.data.name)
+        } else {
+          console.warn('tool_call frame missing string data.name:', parsed.data)
+        }
+        break
+      case 'error': {
+        const message = parsed.data.message
+        throw new Error(typeof message === 'string' && message ? message : 'The assistant hit an error.')
+      }
+      case 'tool_result':
+      case 'done':
+        // intentionally inert - see comment above
+        break
+      default:
+        // parseSSEFrame casts the wire event name without validating it, so an
+        // event outside the known set (e.g. a newer backend contract) reaches
+        // here despite SSEEventName's type claiming this is unreachable -
+        // surface it instead of dropping it unseen.
+        console.warn('Unrecognized SSE event:', parsed.event)
     }
   }
 

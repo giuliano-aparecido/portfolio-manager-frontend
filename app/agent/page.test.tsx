@@ -236,6 +236,37 @@ describe('AgentPage', () => {
     consoleErrorSpy.mockRestore()
   })
 
+  it('warns on a genuinely unrecognized SSE event name without touching the transcript', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const sse = 'event: totally_unknown\ndata: {}\n\nevent: token\ndata: {"text":"still works"}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(screen.getByText('still works')).toBeInTheDocument())
+    expect(consoleWarnSpy).toHaveBeenCalledWith('Unrecognized SSE event:', 'totally_unknown')
+
+    consoleWarnSpy.mockRestore()
+  })
+
+  it('warns with a distinct message for a known event carrying a malformed payload, not "unrecognized"', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const sse = 'event: token\ndata: {"text":123}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled())
+    expect(consoleWarnSpy).toHaveBeenCalledWith('token frame missing string data.text:', { text: 123 })
+    expect(consoleWarnSpy).not.toHaveBeenCalledWith('Unrecognized SSE event:', 'token')
+
+    consoleWarnSpy.mockRestore()
+  })
+
   it('shows no "New chat" button until there is a conversation', () => {
     render(<AgentPage />)
     expect(screen.queryByRole('button', { name: /new chat/i })).not.toBeInTheDocument()
