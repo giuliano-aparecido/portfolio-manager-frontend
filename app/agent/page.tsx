@@ -80,8 +80,13 @@ export default function AgentPage() {
       }
       case 'tool_result':
       case 'done':
+        // intentionally inert - see comment above
         break
       default:
+        // parseSSEFrame casts the wire event name without validating it, so an
+        // event outside the known set (e.g. a newer backend contract) reaches
+        // here despite SSEEventName's type claiming this is unreachable -
+        // surface it instead of dropping it unseen.
         console.warn('Unrecognized SSE event:', parsed.event)
     }
   }
