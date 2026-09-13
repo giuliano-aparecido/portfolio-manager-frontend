@@ -267,6 +267,22 @@ describe('AgentPage', () => {
     consoleWarnSpy.mockRestore()
   })
 
+  it('warns with a distinct message for a tool_call frame carrying a malformed payload, not "unrecognized"', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const sse = 'event: tool_call\ndata: {"name":123}\n\nevent: done\ndata: {}\n\n'
+    apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
+
+    render(<AgentPage />)
+    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+
+    await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled())
+    expect(consoleWarnSpy).toHaveBeenCalledWith('tool_call frame missing string data.name:', { name: 123 })
+    expect(consoleWarnSpy).not.toHaveBeenCalledWith('Unrecognized SSE event:', 'tool_call')
+
+    consoleWarnSpy.mockRestore()
+  })
+
   it('shows no "New chat" button until there is a conversation', () => {
     render(<AgentPage />)
     expect(screen.queryByRole('button', { name: /new chat/i })).not.toBeInTheDocument()

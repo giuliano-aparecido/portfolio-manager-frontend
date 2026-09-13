@@ -51,13 +51,6 @@ export default function AgentPage() {
     updateLastMessage((last) => ({ ...last, toolCalls: last.toolCalls ? [...last.toolCalls, name] : [name] }))
   }
 
-  // 'tool_result' and 'done' are intentionally inert here. 'tool_result' is
-  // the raw tool output for the backend's own use; the UI only ever shows
-  // that a tool was called (via 'tool_call' above), not its result, which
-  // instead reaches the user through the model's own subsequent 'token'
-  // text. 'done' is redundant with the stream's own end-of-body signal,
-  // which readStream already detects via reader.read()'s `done` flag -
-  // there's nothing left to do once that fires.
   function handleFrame(parsed: SSEFrame) {
     switch (parsed.event) {
       case 'token':
@@ -80,13 +73,8 @@ export default function AgentPage() {
       }
       case 'tool_result':
       case 'done':
-        // intentionally inert - see comment above
         break
       default:
-        // parseSSEFrame casts the wire event name without validating it, so an
-        // event outside the known set (e.g. a newer backend contract) reaches
-        // here despite SSEEventName's type claiming this is unreachable -
-        // surface it instead of dropping it unseen.
         console.warn('Unrecognized SSE event:', parsed.event)
     }
   }
