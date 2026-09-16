@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { PASSIVE_TYPES } from '@/lib/passive/validation'
 import { CURRENCIES } from '@/lib/portfolio/validation'
 
@@ -38,53 +39,37 @@ export default function PassiveInvestmentForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setIsSubmitting(true)
-    try {
-      const url = isEdit ? `/passive-investments/${existing!.id}` : '/passive-investments'
-      // Number('') is 0, not NaN, so the empty-string check must come first;
-      // Number.isFinite guards a leftover invalid intermediate value (e.g. a
-      // lone "-" or ".") from serializing as NaN -> null indistinguishably
-      // from an intentional blank field.
-      const parsedGainLossPct = gainLossPct === '' ? null : Number(gainLossPct)
-      const res = await apiFetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
-        body: JSON.stringify({
-          name,
-          type,
-          currency,
-          notes,
-          gainLossPct: Number.isFinite(parsedGainLossPct) ? parsedGainLossPct : null,
+    const parsedGainLossPct = gainLossPct === '' ? null : Number(gainLossPct)
+    await runApiAction(
+      () =>
+        apiFetch(isEdit ? `/passive-investments/${existing!.id}` : '/passive-investments', {
+          method: isEdit ? 'PUT' : 'POST',
+          body: JSON.stringify({
+            name,
+            type,
+            currency,
+            notes,
+            gainLossPct: Number.isFinite(parsedGainLossPct) ? parsedGainLossPct : null,
+          }),
         }),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      onSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save passive investment')
-    } finally {
-      setIsSubmitting(false)
-    }
+      () => onSaved(),
+      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save passive investment' }
+    )
   }
 
   async function handleDelete() {
     if (!existing) return
-    if (!confirm(`Delete "${existing.name}"? This cannot be undone.`)) return
-    setError('')
-    setIsDeleting(true)
-    try {
-      const res = await apiFetch(`/passive-investments/${existing.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
+    await runApiAction(
+      () => apiFetch(`/passive-investments/${existing.id}`, { method: 'DELETE' }),
+      () => onDeleted?.(),
+      {
+        confirmMessage: `Delete "${existing.name}"? This cannot be undone.`,
+        setError,
+        setLoading: setIsDeleting,
+        resetLoadingOnSuccess: false,
+        fallbackErrorMessage: 'Failed to delete passive investment',
       }
-      onDeleted?.()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete passive investment')
-      setIsDeleting(false)
-    }
+    )
   }
 
   return (

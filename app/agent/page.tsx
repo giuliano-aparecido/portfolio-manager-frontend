@@ -5,8 +5,6 @@ import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
 import { parseSSEFrame, type SSEFrame } from '@/lib/parseSSEFrame'
 
-// Lazy-loaded like recharts in app/securities/page.tsx — no reason to
-// bundle a markdown renderer into every page's initial load.
 const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
 
 interface ChatMessage {
@@ -25,9 +23,6 @@ export default function AgentPage() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // Abandon an in-flight stream on navigation away — otherwise the read
-    // loop keeps running, keeps calling setMessages/setError on an
-    // unmounted page, and the connection never closes.
     return () => abortControllerRef.current?.abort()
   }, [])
 
@@ -101,18 +96,11 @@ export default function AgentPage() {
         processFrames(frames)
       }
     } finally {
-      // Otherwise a frame that throws mid-loop (e.g. an "error" event)
-      // leaves the reader locked forever, since only the done-path above
-      // would naturally fall through to release it.
       reader.releaseLock()
     }
 
     buffer += decoder.decode() // flush a multi-byte UTF-8 sequence split across the last chunk
 
-    // The final chunk isn't guaranteed to end with the "\n\n" separator
-    // between frames — without this, a last frame with no trailing
-    // blank line (e.g. the server's closing `done`/`error` event) would
-    // sit in `buffer` and never get parsed or surfaced.
     if (buffer.trim()) processFrames([buffer])
   }
 
@@ -121,8 +109,6 @@ export default function AgentPage() {
     if (!question || isSending) return
 
     const userMessage: ChatMessage = { role: 'user', content: question }
-    // Whole running conversation is resent every turn — nothing is kept
-    // server-side (see PROJECT.md's agent-chat section).
     const requestMessages = [...messages, userMessage].map(({ role, content }) => ({ role, content }))
 
     setMessages((prev) => [...prev, userMessage, { role: 'assistant', content: '' }])
@@ -156,17 +142,12 @@ export default function AgentPage() {
   }
 
   function newChat() {
-    // Abandon an in-flight stream (if any) before dropping the transcript,
-    // so its read loop stops calling setState on a conversation that's
-    // gone — same reason the unmount effect aborts.
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
     setMessages([])
     setInput('')
     setError('')
     setIsSending(false)
-    // The button unmounts itself once messages is empty, so focus would
-    // otherwise fall to <body>.
     inputRef.current?.focus()
   }
 

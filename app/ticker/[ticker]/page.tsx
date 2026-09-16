@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { fmt, gainClass } from '@/lib/format'
 import InvestmentForm from '@/components/InvestmentForm'
 import TransactionForm, { ExistingTransaction } from '@/components/TransactionForm'
@@ -102,17 +103,16 @@ export default function TickerDetailPage() {
   }
 
   async function handleDeleteTransaction(txn: TransactionRow) {
-    if (!confirm(`Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`)) return
-    try {
-      const res = await apiFetch(`/portfolio/transactions/${txn.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
+    await runApiAction(
+      () => apiFetch(`/portfolio/transactions/${txn.id}`, { method: 'DELETE' }),
+      () => load(),
+      {
+        confirmMessage: `Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`,
+        setError: alert,
+        clearErrorBeforeStart: false,
+        fallbackErrorMessage: 'Failed to delete transaction',
       }
-      load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete transaction')
-    }
+    )
   }
 
   if (isLoading && !data) {

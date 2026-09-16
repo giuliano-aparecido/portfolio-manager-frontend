@@ -1,7 +1,3 @@
-// Validation enums for the Passive Investment (cash/pension/fund) asset
-// class — pure constants used for form dropdowns; actual validation
-// happens server-side in portfolio-manager-backend.
-
 import { CURRENCIES, type Currency } from '@/lib/portfolio/validation'
 
 export { CURRENCIES, type Currency }

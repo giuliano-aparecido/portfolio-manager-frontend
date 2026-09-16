@@ -1,11 +1,5 @@
 import { useEffect, type DependencyList } from 'react'
 
-// Middleware already blocks anonymous requests to these pages server-side
-// in production, but this avoids a wasted backend round trip during the
-// brief moment useSession() takes to hydrate client-side (and defends
-// against ever firing this call with no session at all). Skipped in
-// development, where there's no sign-in step at all and the backend
-// auto-provisions a fixed user regardless of session state.
 export function isDevOrAuthenticated(status: string): boolean {
   return process.env.NODE_ENV === 'development' || status === 'authenticated'
 }

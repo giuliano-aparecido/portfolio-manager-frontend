@@ -1,8 +1,3 @@
-// Response shape from portfolio-manager-backend's /portfolio-rollup
-// endpoint — only the top-level totals are consumed by the Overview page;
-// the Securities/ticker detail pages declare their own local, narrower
-// interfaces instead of importing this one.
-
 export interface OpenTickerRollup {
   ticker: string
   category: string

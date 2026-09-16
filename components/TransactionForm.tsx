@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 
 const TYPES = ['BUY', 'SELL', 'DIVIDEND', 'DRIP']
 
@@ -44,32 +45,22 @@ export default function TransactionForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setIsSubmitting(true)
-    try {
-      const body: Record<string, unknown> = { ticker, type, date, notes: notes || undefined }
-      if (isCashType) {
-        body.cashAmount = Number(cashAmount)
-      } else {
-        body.quantity = Number(quantity)
-        body.pricePerShare = Number(pricePerShare)
-      }
-
-      const url = isEdit ? `/portfolio/transactions/${existing!.id}` : '/portfolio/transactions'
-      const res = await apiFetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const responseBody = await res.json().catch(() => ({}))
-        throw new Error(responseBody.error || `Request failed: ${res.status}`)
-      }
-      onSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save transaction')
-    } finally {
-      setIsSubmitting(false)
+    const body: Record<string, unknown> = { ticker, type, date, notes: notes || undefined }
+    if (isCashType) {
+      body.cashAmount = Number(cashAmount)
+    } else {
+      body.quantity = Number(quantity)
+      body.pricePerShare = Number(pricePerShare)
     }
+    await runApiAction(
+      () =>
+        apiFetch(isEdit ? `/portfolio/transactions/${existing!.id}` : '/portfolio/transactions', {
+          method: isEdit ? 'PUT' : 'POST',
+          body: JSON.stringify(body),
+        }),
+      () => onSaved(),
+      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save transaction' }
+    )
   }
 
   return (

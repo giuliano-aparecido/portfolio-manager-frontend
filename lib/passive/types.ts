@@ -1,8 +1,3 @@
-// Response shapes from portfolio-manager-backend's /passive-investments and
-// /passive-rollup endpoints. Dates arrive as ISO strings over the wire (the
-// backend serializes datetimes as ISO-8601), so every date field here is
-// typed as string, not Date.
-
 export interface PassiveTransactionRow {
   id: number
   date: string
