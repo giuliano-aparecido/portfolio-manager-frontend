@@ -37,30 +37,31 @@ export default function InvestmentForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    await runApiAction(
+    setError('')
+    setIsSubmitting(true)
+    const ok = await runApiAction(
       () =>
         apiFetch(isEdit ? `/portfolio/tickers/${existing!.ticker}` : '/portfolio/tickers', {
           method: isEdit ? 'PUT' : 'POST',
           body: JSON.stringify({ ticker, market, category, nativeCurrency }),
         }),
-      () => onSaved(ticker),
-      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save investment' }
+      { onError: setError, fallbackErrorMessage: 'Failed to save investment' }
     )
+    if (ok) onSaved(ticker)
+    setIsSubmitting(false)
   }
 
   async function handleDelete() {
     if (!existing) return
-    await runApiAction(
-      () => apiFetch(`/portfolio/tickers/${existing.ticker}`, { method: 'DELETE' }),
-      () => onDeleted?.(),
-      {
-        confirmMessage: `Delete ${existing.ticker} and all of its transactions? This cannot be undone.`,
-        setError,
-        setLoading: setIsDeleting,
-        resetLoadingOnSuccess: false,
-        fallbackErrorMessage: 'Failed to delete investment',
-      }
-    )
+    if (!confirm(`Delete ${existing.ticker} and all of its transactions? This cannot be undone.`)) return
+    setError('')
+    setIsDeleting(true)
+    const ok = await runApiAction(() => apiFetch(`/portfolio/tickers/${existing.ticker}`, { method: 'DELETE' }), {
+      onError: setError,
+      fallbackErrorMessage: 'Failed to delete investment',
+    })
+    if (ok) onDeleted?.()
+    else setIsDeleting(false)
   }
 
   return (

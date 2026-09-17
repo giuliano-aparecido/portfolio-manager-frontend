@@ -44,11 +44,14 @@ export default function PassiveTransactionForm({
     const url = isEdit
       ? `/passive-investments/${investmentId}/transactions/${existing!.id}`
       : `/passive-investments/${investmentId}/transactions`
-    await runApiAction(
+    setError('')
+    setIsSubmitting(true)
+    const ok = await runApiAction(
       () => apiFetch(url, { method: isEdit ? 'PUT' : 'POST', body: JSON.stringify(body) }),
-      () => onSaved(),
-      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save transaction' }
+      { onError: setError, fallbackErrorMessage: 'Failed to save transaction' }
     )
+    if (ok) onSaved()
+    setIsSubmitting(false)
   }
 
   return (

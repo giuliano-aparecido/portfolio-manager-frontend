@@ -52,30 +52,31 @@ export default function RecurringDepositForm({
       endDate: endDate || undefined,
       notes: notes || undefined,
     }
-    await runApiAction(
+    setError('')
+    setIsSubmitting(true)
+    const ok = await runApiAction(
       () =>
         apiFetch(`/passive-investments/${investmentId}/recurring-deposit`, {
           method: isEdit ? 'PUT' : 'POST',
           body: JSON.stringify(body),
         }),
-      () => onSaved(),
-      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save recurring deposit' }
+      { onError: setError, fallbackErrorMessage: 'Failed to save recurring deposit' }
     )
+    if (ok) onSaved()
+    setIsSubmitting(false)
   }
 
   async function handleDelete() {
     if (!existing) return
-    await runApiAction(
+    if (!confirm('Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.')) return
+    setError('')
+    setIsDeleting(true)
+    const ok = await runApiAction(
       () => apiFetch(`/passive-investments/${investmentId}/recurring-deposit`, { method: 'DELETE' }),
-      () => onSaved(),
-      {
-        confirmMessage: 'Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.',
-        setError,
-        setLoading: setIsDeleting,
-        resetLoadingOnSuccess: false,
-        fallbackErrorMessage: 'Failed to delete recurring deposit',
-      }
+      { onError: setError, fallbackErrorMessage: 'Failed to delete recurring deposit' }
     )
+    if (ok) onSaved()
+    else setIsDeleting(false)
   }
 
   return (

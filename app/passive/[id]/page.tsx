@@ -61,29 +61,21 @@ export default function PassiveInvestmentDetailPage() {
 
 
   async function handleDeleteTransaction(txn: PassiveTransactionRow) {
-    await runApiAction(
+    if (!confirm(`Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`)) return
+    const ok = await runApiAction(
       () => apiFetch(`/passive-investments/${id}/transactions/${txn.id}`, { method: 'DELETE' }),
-      () => load(),
-      {
-        confirmMessage: `Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`,
-        setError: alert,
-        clearErrorBeforeStart: false,
-        fallbackErrorMessage: 'Failed to delete transaction',
-      }
+      { onError: alert, fallbackErrorMessage: 'Failed to delete transaction' }
     )
+    if (ok) load()
   }
 
   async function handleDeleteRecurring() {
-    await runApiAction(
-      () => apiFetch(`/passive-investments/${id}/recurring-deposit`, { method: 'DELETE' }),
-      () => load(),
-      {
-        confirmMessage: 'Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.',
-        setError: alert,
-        clearErrorBeforeStart: false,
-        fallbackErrorMessage: 'Failed to delete recurring deposit',
-      }
-    )
+    if (!confirm('Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.')) return
+    const ok = await runApiAction(() => apiFetch(`/passive-investments/${id}/recurring-deposit`, { method: 'DELETE' }), {
+      onError: alert,
+      fallbackErrorMessage: 'Failed to delete recurring deposit',
+    })
+    if (ok) load()
   }
 
   if (isLoading && !data) {

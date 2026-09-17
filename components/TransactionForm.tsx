@@ -52,15 +52,18 @@ export default function TransactionForm({
       body.quantity = Number(quantity)
       body.pricePerShare = Number(pricePerShare)
     }
-    await runApiAction(
+    setError('')
+    setIsSubmitting(true)
+    const ok = await runApiAction(
       () =>
         apiFetch(isEdit ? `/portfolio/transactions/${existing!.id}` : '/portfolio/transactions', {
           method: isEdit ? 'PUT' : 'POST',
           body: JSON.stringify(body),
         }),
-      () => onSaved(),
-      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save transaction' }
+      { onError: setError, fallbackErrorMessage: 'Failed to save transaction' }
     )
+    if (ok) onSaved()
+    setIsSubmitting(false)
   }
 
   return (

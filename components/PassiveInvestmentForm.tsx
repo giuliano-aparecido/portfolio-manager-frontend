@@ -40,7 +40,9 @@ export default function PassiveInvestmentForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const parsedGainLossPct = gainLossPct === '' ? null : Number(gainLossPct)
-    await runApiAction(
+    setError('')
+    setIsSubmitting(true)
+    const ok = await runApiAction(
       () =>
         apiFetch(isEdit ? `/passive-investments/${existing!.id}` : '/passive-investments', {
           method: isEdit ? 'PUT' : 'POST',
@@ -52,24 +54,23 @@ export default function PassiveInvestmentForm({
             gainLossPct: Number.isFinite(parsedGainLossPct) ? parsedGainLossPct : null,
           }),
         }),
-      () => onSaved(),
-      { setError, setLoading: setIsSubmitting, fallbackErrorMessage: 'Failed to save passive investment' }
+      { onError: setError, fallbackErrorMessage: 'Failed to save passive investment' }
     )
+    if (ok) onSaved()
+    setIsSubmitting(false)
   }
 
   async function handleDelete() {
     if (!existing) return
-    await runApiAction(
-      () => apiFetch(`/passive-investments/${existing.id}`, { method: 'DELETE' }),
-      () => onDeleted?.(),
-      {
-        confirmMessage: `Delete "${existing.name}"? This cannot be undone.`,
-        setError,
-        setLoading: setIsDeleting,
-        resetLoadingOnSuccess: false,
-        fallbackErrorMessage: 'Failed to delete passive investment',
-      }
-    )
+    if (!confirm(`Delete "${existing.name}"? This cannot be undone.`)) return
+    setError('')
+    setIsDeleting(true)
+    const ok = await runApiAction(() => apiFetch(`/passive-investments/${existing.id}`, { method: 'DELETE' }), {
+      onError: setError,
+      fallbackErrorMessage: 'Failed to delete passive investment',
+    })
+    if (ok) onDeleted?.()
+    else setIsDeleting(false)
   }
 
   return (

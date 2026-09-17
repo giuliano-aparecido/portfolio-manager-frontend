@@ -56,16 +56,12 @@ export default function PassiveInvestmentPage() {
   }
 
   async function handleDelete(row: PassiveInvestmentRollupRow) {
-    await runApiAction(
-      () => apiFetch(`/passive-investments/${row.id}`, { method: 'DELETE' }),
-      () => load(false),
-      {
-        confirmMessage: `Delete "${row.name}" and all of its transactions? This cannot be undone.`,
-        setError: alert,
-        clearErrorBeforeStart: false,
-        fallbackErrorMessage: 'Failed to delete passive investment',
-      }
-    )
+    if (!confirm(`Delete "${row.name}" and all of its transactions? This cannot be undone.`)) return
+    const ok = await runApiAction(() => apiFetch(`/passive-investments/${row.id}`, { method: 'DELETE' }), {
+      onError: alert,
+      fallbackErrorMessage: 'Failed to delete passive investment',
+    })
+    if (ok) load(false)
   }
 
   return (

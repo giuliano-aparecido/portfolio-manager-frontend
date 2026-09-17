@@ -103,16 +103,12 @@ export default function TickerDetailPage() {
   }
 
   async function handleDeleteTransaction(txn: TransactionRow) {
-    await runApiAction(
-      () => apiFetch(`/portfolio/transactions/${txn.id}`, { method: 'DELETE' }),
-      () => load(),
-      {
-        confirmMessage: `Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`,
-        setError: alert,
-        clearErrorBeforeStart: false,
-        fallbackErrorMessage: 'Failed to delete transaction',
-      }
-    )
+    if (!confirm(`Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`)) return
+    const ok = await runApiAction(() => apiFetch(`/portfolio/transactions/${txn.id}`, { method: 'DELETE' }), {
+      onError: alert,
+      fallbackErrorMessage: 'Failed to delete transaction',
+    })
+    if (ok) load()
   }
 
   if (isLoading && !data) {
