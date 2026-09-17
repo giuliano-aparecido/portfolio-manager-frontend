@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { fmt, gainClass } from '@/lib/format'
 import type { PassiveRollup, PassiveInvestmentRollupRow } from '@/lib/passive/types'
 import PassiveInvestmentForm, { ExistingPassiveInvestment } from '@/components/PassiveInvestmentForm'
@@ -56,16 +57,11 @@ export default function PassiveInvestmentPage() {
 
   async function handleDelete(row: PassiveInvestmentRollupRow) {
     if (!confirm(`Delete "${row.name}" and all of its transactions? This cannot be undone.`)) return
-    try {
-      const res = await apiFetch(`/passive-investments/${row.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      load(false)
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete passive investment')
-    }
+    const ok = await runApiAction(() => apiFetch(`/passive-investments/${row.id}`, { method: 'DELETE' }), {
+      onError: alert,
+      fallbackErrorMessage: 'Failed to delete passive investment',
+    })
+    if (ok) load(false)
   }
 
   return (

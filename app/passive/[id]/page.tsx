@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { fmt, gainClass } from '@/lib/format'
 import type { PassiveInvestmentDetail, PassiveTransactionRow } from '@/lib/passive/types'
 import PassiveInvestmentForm from '@/components/PassiveInvestmentForm'
@@ -61,30 +62,20 @@ export default function PassiveInvestmentDetailPage() {
 
   async function handleDeleteTransaction(txn: PassiveTransactionRow) {
     if (!confirm(`Delete this ${txn.type} transaction from ${txn.date.slice(0, 10)}?`)) return
-    try {
-      const res = await apiFetch(`/passive-investments/${id}/transactions/${txn.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete transaction')
-    }
+    const ok = await runApiAction(
+      () => apiFetch(`/passive-investments/${id}/transactions/${txn.id}`, { method: 'DELETE' }),
+      { onError: alert, fallbackErrorMessage: 'Failed to delete transaction' }
+    )
+    if (ok) load()
   }
 
   async function handleDeleteRecurring() {
     if (!confirm('Delete this recurring deposit rule? Already-generated deposits will remain in the ledger.')) return
-    try {
-      const res = await apiFetch(`/passive-investments/${id}/recurring-deposit`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete recurring deposit')
-    }
+    const ok = await runApiAction(() => apiFetch(`/passive-investments/${id}/recurring-deposit`, { method: 'DELETE' }), {
+      onError: alert,
+      fallbackErrorMessage: 'Failed to delete recurring deposit',
+    })
+    if (ok) load()
   }
 
   if (isLoading && !data) {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { CURRENCIES } from '@/lib/portfolio/validation'
 
 const MARKETS = ['NYSE', 'NASDAQ', 'SIX', 'LON', 'TSX', 'SGX', 'CRYPTO']
@@ -21,9 +22,6 @@ export default function InvestmentForm({
   onDeleted,
 }: {
   existing?: ExistingTicker
-  // Receives the saved ticker symbol so a caller can navigate straight to
-  // its detail page — needed on create, where a brand-new investment has
-  // no transactions yet and so never shows up in the rollup-driven tables.
   onSaved: (ticker: string) => void
   onCancel: () => void
   onDeleted?: () => void
@@ -41,22 +39,16 @@ export default function InvestmentForm({
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
-    try {
-      const url = isEdit ? `/portfolio/tickers/${existing!.ticker}` : '/portfolio/tickers'
-      const res = await apiFetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
-        body: JSON.stringify({ ticker, market, category, nativeCurrency }),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      onSaved(ticker)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save investment')
-    } finally {
-      setIsSubmitting(false)
-    }
+    const ok = await runApiAction(
+      () =>
+        apiFetch(isEdit ? `/portfolio/tickers/${existing!.ticker}` : '/portfolio/tickers', {
+          method: isEdit ? 'PUT' : 'POST',
+          body: JSON.stringify({ ticker, market, category, nativeCurrency }),
+        }),
+      { onError: setError, fallbackErrorMessage: 'Failed to save investment' }
+    )
+    if (ok) onSaved(ticker)
+    setIsSubmitting(false)
   }
 
   async function handleDelete() {
@@ -64,17 +56,12 @@ export default function InvestmentForm({
     if (!confirm(`Delete ${existing.ticker} and all of its transactions? This cannot be undone.`)) return
     setError('')
     setIsDeleting(true)
-    try {
-      const res = await apiFetch(`/portfolio/tickers/${existing.ticker}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Request failed: ${res.status}`)
-      }
-      onDeleted?.()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete investment')
-      setIsDeleting(false)
-    }
+    const ok = await runApiAction(() => apiFetch(`/portfolio/tickers/${existing.ticker}`, { method: 'DELETE' }), {
+      onError: setError,
+      fallbackErrorMessage: 'Failed to delete investment',
+    })
+    if (ok) onDeleted?.()
+    else setIsDeleting(false)
   }
 
   return (

@@ -2,10 +2,6 @@ import { useState } from 'react'
 
 export type SortDir = 'asc' | 'desc'
 
-// Record<K, ...> forces an accessor for every key of K at the call site,
-// so a forgotten/renamed sort key fails at compile time instead of
-// silently sorting nothing (the failure mode a plain switch with no
-// default would have).
 export function sortRows<T, K extends string>(
   rows: T[],
   key: K,

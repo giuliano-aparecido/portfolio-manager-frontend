@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
+import { runApiAction } from '@/lib/apiAction'
 import { PASSIVE_TXN_TYPES } from '@/lib/passive/validation'
 
 export interface ExistingPassiveTransaction {
@@ -39,28 +40,18 @@ export default function PassiveTransactionForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const body = { type, date, amountNative: Number(amountNative), notes: notes || undefined }
+    const url = isEdit
+      ? `/passive-investments/${investmentId}/transactions/${existing!.id}`
+      : `/passive-investments/${investmentId}/transactions`
     setError('')
     setIsSubmitting(true)
-    try {
-      const body = { type, date, amountNative: Number(amountNative), notes: notes || undefined }
-
-      const url = isEdit
-        ? `/passive-investments/${investmentId}/transactions/${existing!.id}`
-        : `/passive-investments/${investmentId}/transactions`
-      const res = await apiFetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const responseBody = await res.json().catch(() => ({}))
-        throw new Error(responseBody.error || `Request failed: ${res.status}`)
-      }
-      onSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save transaction')
-    } finally {
-      setIsSubmitting(false)
-    }
+    const ok = await runApiAction(
+      () => apiFetch(url, { method: isEdit ? 'PUT' : 'POST', body: JSON.stringify(body) }),
+      { onError: setError, fallbackErrorMessage: 'Failed to save transaction' }
+    )
+    if (ok) onSaved()
+    setIsSubmitting(false)
   }
 
   return (

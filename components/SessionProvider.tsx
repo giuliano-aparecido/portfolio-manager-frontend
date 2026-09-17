@@ -3,10 +3,6 @@
 import { SessionProvider as NextAuthSessionProvider, signOut, useSession } from 'next-auth/react'
 import { ReactNode, useEffect, useRef } from 'react'
 
-// No activity for this long signs the user out. 15 minutes is generous
-// enough not to interrupt someone reviewing a long transaction history,
-// but short enough that a walked-away, still-open tab with real portfolio
-// data doesn't stay signed in indefinitely.
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000
 const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'] as const
 const STORAGE_KEY = 'idleLogout:lastActivityAt'
