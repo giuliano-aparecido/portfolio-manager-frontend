@@ -48,12 +48,12 @@ function mockChunkedStreamingResponse(chunks: string[]) {
 describe('AgentPage', () => {
   it('renders the empty-state prompt with no messages sent yet', () => {
     render(<AgentPage />)
-    expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+    expect(screen.getByText(/ask anything/i)).toBeInTheDocument()
   })
 
   it('has an accessible label on the chat input', () => {
     render(<AgentPage />)
-    expect(screen.getByLabelText(/ask about your portfolio/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/ask anything/i)).toBeInTheDocument()
   })
 
   it('scrolls the latest message into view as the reply streams in', async () => {
@@ -67,7 +67,7 @@ describe('AgentPage', () => {
     // assertion below is tied to sending the message, not just mounting.
     scrollIntoViewSpy.mockClear()
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(scrollIntoViewSpy).toHaveBeenCalled())
@@ -85,7 +85,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), {
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), {
       target: { value: 'What do I hold?' },
     })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
@@ -110,13 +110,13 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), {
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), {
       target: { value: 'What do I hold?' },
     })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     await waitFor(() => expect(screen.getByText('You hold AAPL.')).toBeInTheDocument())
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), {
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), {
       target: { value: 'What if I sold it?' },
     })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
@@ -138,7 +138,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('The assistant hit an unexpected error.'))
@@ -150,7 +150,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('The assistant hit an error.'))
@@ -165,7 +165,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByText('Internal server error')).toBeInTheDocument())
@@ -180,7 +180,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByText('Done, no trailing separator.')).toBeInTheDocument())
@@ -195,7 +195,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByText('split')).toBeInTheDocument())
@@ -217,7 +217,7 @@ describe('AgentPage', () => {
 
     const { unmount } = render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     await waitFor(() => expect(apiFetchMock).toHaveBeenCalled())
 
@@ -242,7 +242,7 @@ describe('AgentPage', () => {
     apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
 
     render(<AgentPage />)
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(screen.getByText('still works')).toBeInTheDocument())
@@ -257,7 +257,7 @@ describe('AgentPage', () => {
     apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
 
     render(<AgentPage />)
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled())
@@ -273,7 +273,7 @@ describe('AgentPage', () => {
     apiFetchMock.mockResolvedValue(mockStreamingResponse(sse))
 
     render(<AgentPage />)
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
 
     await waitFor(() => expect(consoleWarnSpy).toHaveBeenCalled())
@@ -297,7 +297,7 @@ describe('AgentPage', () => {
 
     render(<AgentPage />)
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'What do I hold?' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'What do I hold?' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     await waitFor(() => expect(screen.getByText('You hold AAPL.')).toBeInTheDocument())
 
@@ -305,11 +305,11 @@ describe('AgentPage', () => {
 
     expect(screen.queryByText('What do I hold?')).not.toBeInTheDocument()
     expect(screen.queryByText('You hold AAPL.')).not.toBeInTheDocument()
-    expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+    expect(screen.getByText(/ask anything/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /new chat/i })).not.toBeInTheDocument()
-    expect(screen.getByLabelText(/ask about your portfolio/i)).toHaveFocus()
+    expect(screen.getByLabelText(/ask anything/i)).toHaveFocus()
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'New question?' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'New question?' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     await waitFor(() => expect(screen.getByText('Fresh answer.')).toBeInTheDocument())
 
@@ -351,7 +351,7 @@ describe('AgentPage', () => {
     })
 
     render(<AgentPage />)
-    fireEvent.change(screen.getByPlaceholderText(/ask about your portfolio/i), { target: { value: 'hi' } })
+    fireEvent.change(screen.getByPlaceholderText(/ask anything/i), { target: { value: 'hi' } })
     fireEvent.click(screen.getByRole('button', { name: /send/i }))
     await waitFor(() => expect(screen.getByText('thinking')).toBeInTheDocument())
 
@@ -363,7 +363,7 @@ describe('AgentPage', () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0))
     })
-    expect(screen.getByText(/ask a question about your portfolio/i)).toBeInTheDocument()
+    expect(screen.getByText(/ask anything/i)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument() // not "Sending…"
     expect(consoleErrorSpy).not.toHaveBeenCalled()

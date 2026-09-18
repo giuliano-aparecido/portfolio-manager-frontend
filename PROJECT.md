@@ -19,8 +19,10 @@ differently:
 
 `/` (Overview) shows both portfolios' totals side by side.
 
-- **Ask AI** (`/agent`) — a chat page for natural-language questions about
-  the portfolio ("where am I overweight?"). Posts the whole running
+- **Ask AI** (`/agent`) — a general-purpose chat page, not restricted to
+  portfolio questions (dropped 2026-09-18) — it also has tools for the
+  portfolio ("where am I overweight?"), used automatically when a
+  question calls for one. Posts the whole running
   conversation to the backend's `POST /agent/ask` each turn (nothing is
   persisted here — no server-side session, matching this app's pattern of
   no server-side data-fetching layer) and streams the reply back as

@@ -175,8 +175,9 @@ export default function AgentPage() {
       <div className="flex flex-col gap-4 mb-4">
         {messages.length === 0 && (
           <p className="text-gray-500 text-sm">
-            Ask a question about your portfolio — e.g. &quot;where am I overweight?&quot; or &quot;what would selling
-            5 shares of AAPL do to my allocation?&quot;
+            Ask anything — e.g. &quot;where am I overweight?&quot; or &quot;what would selling 5 shares of AAPL do to
+            my allocation?&quot; It also has tools for your real portfolio, used automatically when a question
+            calls for one.
           </p>
         )}
 
@@ -223,8 +224,8 @@ export default function AgentPage() {
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your portfolio..."
-          aria-label="Ask about your portfolio"
+          placeholder="Ask anything..."
+          aria-label="Ask anything"
           disabled={isSending}
           className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
         />
