@@ -58,3 +58,12 @@ that silently reset on every page reload), not a blanket coverage target.
 npm run type-check
 npm run build
 ```
+
+## License
+
+Dual-licensed under either of
+
+- [MIT license](LICENSE-MIT)
+- [Apache License, Version 2.0](LICENSE-APACHE)
+
+at your option.
