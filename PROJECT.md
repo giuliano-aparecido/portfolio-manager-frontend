@@ -4,7 +4,7 @@
 
 The web UI for a multi-currency personal investment portfolio tracker,
 with CHF as the base currency, calling a separate Python/FastAPI backend —
-[`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend).
+[`portfolio-manager-backend`](https://github.com/giuliano-aparecido/portfolio-manager-backend).
 
 Two portfolio types are tracked, with separate pages because they behave
 differently:

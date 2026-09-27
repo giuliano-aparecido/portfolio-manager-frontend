@@ -3,7 +3,7 @@
 ## Requirements
 
 - Node.js 18+
-- [`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend)
+- [`portfolio-manager-backend`](https://github.com/giuliano-aparecido/portfolio-manager-backend)
   running locally (see its own `DEVELOPMENT.md`) — this app has no
   database of its own and can't do anything useful without the backend.
 
