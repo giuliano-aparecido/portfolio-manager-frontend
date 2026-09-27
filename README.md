@@ -5,7 +5,7 @@
 Next.js/React UI for a multi-currency investment portfolio tracker (FIFO
 cost basis, live Yahoo Finance pricing, a manual-gain/loss passive-investment
 ledger with recurring deposits), calling a separate Python/FastAPI backend
-— [`portfolio-manager-backend`](https://github.com/GiulianoAparecido/portfolio-manager-backend).
+— [`portfolio-manager-backend`](https://github.com/giuliano-aparecido/portfolio-manager-backend).
 
 ## Documentation
 
