@@ -38,4 +38,6 @@ export interface PortfolioRollup {
   totalUnrealizedGainCHF: number
   totalDividendsCHF: number
   totalRealizedGainCHF: number
+  // Annualized money-weighted return (XIRR); null when not meaningful.
+  xirrPct: number | null
 }
