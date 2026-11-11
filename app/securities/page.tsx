@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
-import { fmt, fmtPct, gainClass } from '@/lib/format'
+import { fmt, fmtPct, gainClass, historyCaption } from '@/lib/format'
 import InvestmentForm, { type ExistingTicker } from '@/components/InvestmentForm'
 import { useAuthGatedEffect, isDevOrAuthenticated } from '@/lib/useAuthGatedEffect'
 import { sortRows, useSortState } from '@/lib/sortRows'
@@ -60,6 +60,7 @@ interface PortfolioRollup {
   totalDividendsCHF: number
   totalRealizedGainCHF: number
   xirrPct: number | null
+  xirrSpanDays: number | null
 }
 
 type SortKey = 'ticker' | 'shares' | 'costBasis' | 'price' | 'marketValue' | 'unrealizedGL' | 'portfolio' | 'unrealizedGLPercent' | 'unrealizedGLPercentCHF'
@@ -259,9 +260,12 @@ export default function SecuritiesPage() {
                 {suffix === 'xirr' ? (
                   <div
                     className={`text-lg font-mono font-semibold ${value == null ? 'text-gray-400' : gainClass(value as number)}`}
-                    title="Annualized money-weighted return on all deposits and withdrawals. Needs at least 180 days of history."
+                    title="Annualized money-weighted return on all deposits and withdrawals. Uses all deposits since your first one; needs at least 30 days of history."
                   >
                     {fmtPct(value as number | null)}
+                    {historyCaption(data.xirrSpanDays) && value != null && (
+                      <div className="text-xs font-sans font-normal text-gray-500 mt-1">{historyCaption(data.xirrSpanDays)}</div>
+                    )}
                   </div>
                 ) : (
                   <div className={`text-lg font-mono font-semibold ${label === 'Unrealized G/L' || label === 'Unrealized G/L %' ? gainClass(value as number) : 'text-gray-900'}`}>

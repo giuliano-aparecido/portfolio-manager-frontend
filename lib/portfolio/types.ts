@@ -40,4 +40,6 @@ export interface PortfolioRollup {
   totalRealizedGainCHF: number
   // Annualized money-weighted return (XIRR); null when not meaningful.
   xirrPct: number | null
+  // Days of history the XIRR rests on (to caveat a short one).
+  xirrSpanDays: number | null
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
-import { fmt, fmtPct, gainClass } from '@/lib/format'
+import { fmt, fmtPct, gainClass, historyCaption } from '@/lib/format'
 import type { PortfolioRollup } from '@/lib/portfolio/types'
 import type { PassiveRollup } from '@/lib/passive/types'
 import { useAuthGatedEffect } from '@/lib/useAuthGatedEffect'
@@ -14,6 +14,7 @@ export default function OverviewPage() {
   const [securities, setSecurities] = useState<PortfolioRollup | null>(null)
   const [passive, setPassive] = useState<PassiveRollup | null>(null)
   const [combinedXirrPct, setCombinedXirrPct] = useState<number | null>(null)
+  const [combinedXirrSpanDays, setCombinedXirrSpanDays] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -45,8 +46,10 @@ export default function OverviewPage() {
         const combinedRes = await apiFetch('/combined-return')
         const combinedBody = combinedRes.ok ? await combinedRes.json().catch(() => null) : null
         setCombinedXirrPct(combinedBody?.xirrPct ?? null)
+        setCombinedXirrSpanDays(combinedBody?.xirrSpanDays ?? null)
       } catch {
         setCombinedXirrPct(null)
+        setCombinedXirrSpanDays(null)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load overview')
@@ -115,9 +118,12 @@ export default function OverviewPage() {
             {suffix === 'xirr' ? (
               <div
                 className={`text-lg font-mono font-semibold ${value == null ? 'text-gray-400' : gainClass(value as number)}`}
-                title="Annualized money-weighted return on all deposits and withdrawals. Needs at least 180 days of history."
+                title="Annualized money-weighted return on all deposits and withdrawals. Uses all deposits since your first one; needs at least 30 days of history."
               >
                 {fmtPct(value as number | null)}
+                {historyCaption(combinedXirrSpanDays) && value != null && (
+                  <div className="text-xs font-sans font-normal text-gray-500 mt-1">{historyCaption(combinedXirrSpanDays)}</div>
+                )}
               </div>
             ) : (
               <div
