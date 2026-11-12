@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/apiFetch'
-import { fmt, gainClass } from '@/lib/format'
+import { fmt, fmtPct, gainClass, historyCaption } from '@/lib/format'
 import type { PortfolioRollup } from '@/lib/portfolio/types'
 import type { PassiveRollup } from '@/lib/passive/types'
 import { useAuthGatedEffect } from '@/lib/useAuthGatedEffect'
@@ -13,6 +13,8 @@ export default function OverviewPage() {
   const { status } = useSession()
   const [securities, setSecurities] = useState<PortfolioRollup | null>(null)
   const [passive, setPassive] = useState<PassiveRollup | null>(null)
+  const [combinedXirrPct, setCombinedXirrPct] = useState<number | null>(null)
+  const [combinedXirrSpanDays, setCombinedXirrSpanDays] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -37,6 +39,18 @@ export default function OverviewPage() {
       }
       setSecurities(securitiesBody)
       setPassive(passiveBody)
+      // Fetched after the rollups, without refresh: they just warmed the
+      // backend price/FX cache, so this reuses it instead of refetching.
+      // A failure here only hides the XIRR card - it must not blank the page.
+      try {
+        const combinedRes = await apiFetch('/combined-return')
+        const combinedBody = combinedRes.ok ? await combinedRes.json().catch(() => null) : null
+        setCombinedXirrPct(combinedBody?.xirrPct ?? null)
+        setCombinedXirrSpanDays(combinedBody?.xirrSpanDays ?? null)
+      } catch {
+        setCombinedXirrPct(null)
+        setCombinedXirrSpanDays(null)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load overview')
     } finally {
@@ -91,22 +105,35 @@ export default function OverviewPage() {
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">{error}</div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {[
+          ['Annual Return (XIRR)', combinedXirrPct, 'xirr'],
           ['Cost Basis', combinedCostBasisCHF, null],
           ['Market Value', combinedMarketValueCHF, null],
           ['Unrealized G/L', combinedUnrealizedGainCHF, null],
-          ['G/L %', combinedGLPercent, '%'],
+          ['Unrealized G/L %', combinedGLPercent, '%'],
         ].map(([label, value, suffix]) => (
           <div key={label as string} className="bg-white rounded-lg shadow p-4">
             <div className="text-xs text-gray-500 uppercase">{label}</div>
-            <div
-              className={`text-lg font-mono font-semibold ${
-                label === 'Unrealized G/L' || label === 'G/L %' ? gainClass(value as number) : 'text-gray-900'
-              }`}
-            >
-              {fmt(value as number)} {suffix || 'CHF'}
-            </div>
+            {suffix === 'xirr' ? (
+              <div
+                className={`text-lg font-mono font-semibold ${value == null ? 'text-gray-400' : gainClass(value as number)}`}
+                title="Annualized money-weighted return on all deposits and withdrawals. Uses all deposits since your first one; needs at least 30 days of history."
+              >
+                {fmtPct(value as number | null)}
+                {historyCaption(combinedXirrSpanDays) && value != null && (
+                  <div className="text-xs font-sans font-normal text-gray-500 mt-1">{historyCaption(combinedXirrSpanDays)}</div>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`text-lg font-mono font-semibold ${
+                  label === 'Unrealized G/L' || label === 'Unrealized G/L %' ? gainClass(value as number) : 'text-gray-900'
+                }`}
+              >
+                {fmt(value as number)} {suffix || 'CHF'}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -119,7 +146,7 @@ export default function OverviewPage() {
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Cost Basis (CHF)</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Market Value (CHF)</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900">Unrealized G/L (CHF)</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-900">G/L %</th>
+              <th className="px-4 py-3 text-right font-semibold text-gray-900">Unrealized G/L %</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">

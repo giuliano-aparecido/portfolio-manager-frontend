@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { apiFetch } from '@/lib/apiFetch'
-import { fmt, gainClass } from '@/lib/format'
+import { fmt, fmtPct, gainClass, historyCaption } from '@/lib/format'
 import InvestmentForm, { type ExistingTicker } from '@/components/InvestmentForm'
 import { useAuthGatedEffect, isDevOrAuthenticated } from '@/lib/useAuthGatedEffect'
 import { sortRows, useSortState } from '@/lib/sortRows'
@@ -59,6 +59,8 @@ interface PortfolioRollup {
   totalUnrealizedGainCHF: number
   totalDividendsCHF: number
   totalRealizedGainCHF: number
+  xirrPct: number | null
+  xirrSpanDays: number | null
 }
 
 type SortKey = 'ticker' | 'shares' | 'costBasis' | 'price' | 'marketValue' | 'unrealizedGL' | 'portfolio' | 'unrealizedGLPercent' | 'unrealizedGLPercentCHF'
@@ -245,18 +247,31 @@ export default function SecuritiesPage() {
 
       {data && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             {[
+              ['Annual Return (XIRR)', data.xirrPct, 'xirr'],
               ['Cost Basis', data.totalCostBasisCHF, null],
               ['Market Value', data.totalMarketValueCHF, null],
               ['Unrealized G/L', data.totalUnrealizedGainCHF, null],
-              ['G/L %', data.totalCostBasisCHF > 0 ? (data.totalUnrealizedGainCHF / data.totalCostBasisCHF) * 100 : 0, '%'],
+              ['Unrealized G/L %', data.totalCostBasisCHF > 0 ? (data.totalUnrealizedGainCHF / data.totalCostBasisCHF) * 100 : 0, '%'],
             ].map(([label, value, suffix]) => (
               <div key={label as string} className="bg-white rounded-lg shadow p-4">
                 <div className="text-xs text-gray-500 uppercase">{label}</div>
-                <div className={`text-lg font-mono font-semibold ${label === 'Unrealized G/L' || label === 'G/L %' ? gainClass(value as number) : 'text-gray-900'}`}>
-                  {fmt(value as number)} {suffix || 'CHF'}
-                </div>
+                {suffix === 'xirr' ? (
+                  <div
+                    className={`text-lg font-mono font-semibold ${value == null ? 'text-gray-400' : gainClass(value as number)}`}
+                    title="Annualized money-weighted return on all deposits and withdrawals. Uses all deposits since your first one; needs at least 30 days of history."
+                  >
+                    {fmtPct(value as number | null)}
+                    {historyCaption(data.xirrSpanDays) && value != null && (
+                      <div className="text-xs font-sans font-normal text-gray-500 mt-1">{historyCaption(data.xirrSpanDays)}</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className={`text-lg font-mono font-semibold ${label === 'Unrealized G/L' || label === 'Unrealized G/L %' ? gainClass(value as number) : 'text-gray-900'}`}>
+                    {fmt(value as number)} {suffix || 'CHF'}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -331,7 +346,7 @@ export default function SecuritiesPage() {
                   <th className="px-4 py-3 text-right"><SortHeader label="Cost Basis (native)" active={sortKey === 'costBasis'} dir={sortDir} onClick={() => toggleSort('costBasis')} align="right" /></th>
                   <th className="px-4 py-3 text-right"><SortHeader label="Market Value (CHF)" active={sortKey === 'marketValue'} dir={sortDir} onClick={() => toggleSort('marketValue')} align="right" /></th>
                   <th className="px-4 py-3 text-right"><SortHeader label="Unrealized G/L (CHF)" active={sortKey === 'unrealizedGL'} dir={sortDir} onClick={() => toggleSort('unrealizedGL')} align="right" /></th>
-                  <th className="px-4 py-3 text-right"><SortHeader label="G/L % (CHF)" active={sortKey === 'unrealizedGLPercentCHF'} dir={sortDir} onClick={() => toggleSort('unrealizedGLPercentCHF')} align="right" /></th>
+                  <th className="px-4 py-3 text-right"><SortHeader label="Unrealized G/L % (CHF)" active={sortKey === 'unrealizedGLPercentCHF'} dir={sortDir} onClick={() => toggleSort('unrealizedGLPercentCHF')} align="right" /></th>
                   <th className="px-4 py-3 text-right"><SortHeader label="Portfolio %" active={sortKey === 'portfolio'} dir={sortDir} onClick={() => toggleSort('portfolio')} align="right" /></th>
                 </tr>
               </thead>

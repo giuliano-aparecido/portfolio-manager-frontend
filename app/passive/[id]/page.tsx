@@ -209,7 +209,7 @@ export default function PassiveInvestmentDetailPage() {
               <div className={`text-xs font-mono mt-1 ${gainClass(data.unrealizedGainCHF)}`}>{fmt(data.unrealizedGainCHF)} CHF</div>
             </div>
             <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-xs text-gray-500 uppercase">G/L %</div>
+              <div className="text-xs text-gray-500 uppercase">Unrealized G/L %</div>
               {data.costBasisNative > 0 ? (
                 <>
                   <div className={`text-lg font-mono font-semibold ${gainClass((data.unrealizedGainNative / data.costBasisNative) * 100)}`}>
